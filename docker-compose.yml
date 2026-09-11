@@ -21,7 +21,7 @@ services:
       - pg_data:/var/lib/postgresql/data
       - ./ops/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -102,11 +102,16 @@ services:
     ports:
       - "8081:80"
     depends_on:
-      - frontend
-      - identity
-      - academic
-      - finance
-      - hr
+      frontend:
+        condition: service_healthy
+      identity:
+        condition: service_healthy
+      academic:
+        condition: service_healthy
+      finance:
+        condition: service_healthy
+      hr:
+        condition: service_healthy
 
 networks:
   erp_internal:

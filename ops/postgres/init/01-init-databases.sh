@@ -11,7 +11,7 @@ create_service_db() {
   local role_name="$2"
   local role_password="$3"
 
-  psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
+  psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
     CREATE ROLE ${role_name} LOGIN PASSWORD '${role_password}';
     CREATE DATABASE ${db_name} OWNER ${role_name};
     REVOKE ALL ON DATABASE ${db_name} FROM PUBLIC;
