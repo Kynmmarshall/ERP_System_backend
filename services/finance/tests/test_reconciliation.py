@@ -47,7 +47,9 @@ async def test_successful_reconciliation_posts_balanced_ledger_and_one_receipt()
         debit_entries = (
             (
                 await session.execute(
-                    select(LedgerEntry).where(LedgerEntry.reference_id == intent.id, LedgerEntry.direction == LedgerDirection.DEBIT)
+                    select(LedgerEntry).where(
+                        LedgerEntry.reference_id == intent.id, LedgerEntry.direction == LedgerDirection.DEBIT
+                    )
                 )
             )
             .scalars()

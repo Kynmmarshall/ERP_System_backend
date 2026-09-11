@@ -73,7 +73,12 @@ async def test_roi_is_negative_full_cost_when_no_leads_convert(client) -> None:
     token = mint_token(tenant_id=str(institution_id), role="admin")
     create_resp = await client.post(
         "/api/v1/finance/campaigns",
-        json={"name": "Billboard", "cost_xaf": 50_000, "starts_on": str(date(2026, 1, 1)), "ends_on": str(date(2026, 1, 31))},
+        json={
+            "name": "Billboard",
+            "cost_xaf": 50_000,
+            "starts_on": str(date(2026, 1, 1)),
+            "ends_on": str(date(2026, 1, 31)),
+        },
         headers={"Authorization": f"Bearer {token}"},
     )
     campaign_id = create_resp.json()["id"]

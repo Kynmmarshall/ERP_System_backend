@@ -7,11 +7,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import SessionFactory
+from app.core.tenant_context import set_platform_context
 from app.deps import get_current_claims, get_tenant_session
 from app.models.finance import Invoice, InvoiceStatus
 from app.models.payments import PaymentIntent, PaymentIntentStatus
 from app.payments import get_gateway
-from app.reconciliation import reconcile_intent, reconcile_intent_as_platform_admin
+from app.reconciliation import reconcile_intent
 from app.schemas import PaymentCallbackRequest, PaymentIntentCreateRequest, PaymentIntentResponse
 
 router = APIRouter()
@@ -68,7 +69,9 @@ async def create_payment_intent(
         # The intent row already exists and stays PENDING; the worker's
         # poll loop (and this invoice's next status check) will keep
         # trying rather than losing the payment attempt.
-        logger.exception("CamerPay request_to_pay call failed for intent %s; left pending for reconciliation", intent.id)
+        logger.exception(
+            "CamerPay request_to_pay call failed for intent %s; left pending for reconciliation", intent.id
+        )
 
     return intent
 
@@ -89,8 +92,11 @@ async def get_payment_intent(
     if intent.status == PaymentIntentStatus.PENDING:
         # Give the caller a fresher status than waiting for the next
         # worker poll tick, using the exact same reconciliation path.
+        # reconcile_intent mutates this same identity-mapped instance and
+        # commits with expire_on_commit=False, so no refresh is needed -
+        # and refreshing here would re-SELECT in a new transaction after
+        # the tenant RLS context set by SET LOCAL has already ended.
         await reconcile_intent(session, get_gateway(), intent.id)
-        await session.refresh(intent)
 
     return intent
 
@@ -102,11 +108,13 @@ async def payment_callback(payload: PaymentCallbackRequest) -> dict:
     the reference is used, to look up the matching intent and re-check its
     real status via the gateway itself.
     """
-    result_query = select(PaymentIntent).where(PaymentIntent.provider_reference == payload.reference)
     async with SessionFactory() as session:
-        result = await session.execute(result_query)
+        await set_platform_context(session)
+        result = await session.execute(
+            select(PaymentIntent).where(PaymentIntent.provider_reference == payload.reference)
+        )
         intent = result.scalar_one_or_none()
         if intent is None:
             return {"status": "ignored"}
-        new_status = await reconcile_intent_as_platform_admin(session, get_gateway(), intent.id)
+        new_status = await reconcile_intent(session, get_gateway(), intent.id)
     return {"status": new_status.value if new_status else "ignored"}

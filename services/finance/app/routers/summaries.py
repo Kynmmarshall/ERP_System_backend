@@ -1,4 +1,5 @@
 import uuid
+from datetime import date
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
@@ -16,7 +17,7 @@ _STAFF_ROLES = ("admin", "staff", "super_admin")
 
 @router.get("/summaries", response_model=list[FinancialSummaryResponse])
 async def list_summaries(
-    period: str | None = Query(default=None),
+    period: date | None = Query(default=None),
     claims: dict = Depends(require_roles(*_STAFF_ROLES)),
     session: AsyncSession = Depends(get_tenant_session),
 ) -> list[FinancialSummary]:

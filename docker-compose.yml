@@ -118,6 +118,11 @@ services:
       DATABASE_URL: postgresql+asyncpg://finance_app:${FINANCE_DB_PASSWORD}@postgres:5432/finance_db
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
       ENVIRONMENT: development
+      CAMERPAY_PROVIDER: ${CAMERPAY_PROVIDER}
+      CAMERPAY_SUBSCRIPTION_KEY: ${CAMERPAY_SUBSCRIPTION_KEY}
+      CAMERPAY_API_USER: ${CAMERPAY_API_USER}
+      CAMERPAY_API_KEY: ${CAMERPAY_API_KEY}
+      CAMERPAY_TARGET_ENVIRONMENT: ${CAMERPAY_TARGET_ENVIRONMENT}
     depends_on:
       postgres:
         condition: service_healthy

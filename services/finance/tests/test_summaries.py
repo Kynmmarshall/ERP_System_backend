@@ -14,7 +14,9 @@ from app.summaries import add_month, generate_summary, run_catch_up
 from tests.helpers import mint_token
 
 
-async def _post_revenue_and_expense(institution_id: uuid.UUID, *, created_at: datetime, revenue: int, expense: int) -> None:
+async def _post_revenue_and_expense(
+    institution_id: uuid.UUID, *, created_at: datetime, revenue: int, expense: int
+) -> None:
     async with SessionFactory() as session:
         await set_platform_context(session)
         await post_balanced(
@@ -40,7 +42,10 @@ async def _post_revenue_and_expense(institution_id: uuid.UUID, *, created_at: da
     async with SessionFactory() as session:
         await set_platform_context(session)
         result = await session.execute(
-            select(LedgerEntry).where(LedgerEntry.institution_id == institution_id).order_by(LedgerEntry.created_at.desc()).limit(4)
+            select(LedgerEntry)
+            .where(LedgerEntry.institution_id == institution_id)
+            .order_by(LedgerEntry.created_at.desc())
+            .limit(4)
         )
         for entry in result.scalars().all():
             entry.created_at = created_at

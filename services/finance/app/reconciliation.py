@@ -4,7 +4,6 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.tenant_context import set_platform_context
 from app.ledger import LedgerLine, post_balanced
 from app.models.finance import Invoice, InvoiceStatus
 from app.models.ledger import LedgerDirection, LedgerEntryType, Receipt
@@ -72,10 +71,3 @@ async def reconcile_intent(
     await session.commit()
     logger.info("Payment intent %s succeeded, invoice %s paid", intent.id, invoice.id)
     return PaymentIntentStatus.SUCCEEDED
-
-
-async def reconcile_intent_as_platform_admin(
-    session: AsyncSession, gateway: PaymentGateway, intent_id: uuid.UUID
-) -> PaymentIntentStatus | None:
-    await set_platform_context(session)
-    return await reconcile_intent(session, gateway, intent_id)

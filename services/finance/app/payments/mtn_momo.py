@@ -35,10 +35,11 @@ class MtnMomoGateway:
         )
         response.raise_for_status()
         body = response.json()
-        self._access_token = body["access_token"]
+        access_token: str = body["access_token"]
+        self._access_token = access_token
         # Refresh a little early rather than exactly at expiry.
         self._token_expires_at = datetime.now(UTC) + timedelta(seconds=int(body["expires_in"]) - 30)
-        return self._access_token
+        return access_token
 
     async def request_to_pay(self, *, reference: str, amount_xaf: int, payer_msisdn: str) -> None:
         async with httpx.AsyncClient(timeout=15.0) as client:
