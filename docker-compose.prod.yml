@@ -20,11 +20,19 @@ services:
     volumes: !override
       - ${JWT_PUBLIC_KEY_FILE}:/run/secrets/jwt_public_key.pem:ro
 
+  academic-worker:
+    build: !reset null
+    image: ${REGISTRY_HOST}/${REGISTRY_NAMESPACE}/erp-academic:${IMAGE_TAG}
+
   finance:
     build: !reset null
     image: ${REGISTRY_HOST}/${REGISTRY_NAMESPACE}/erp-finance:${IMAGE_TAG}
     volumes: !override
       - ${JWT_PUBLIC_KEY_FILE}:/run/secrets/jwt_public_key.pem:ro
+
+  finance-worker:
+    build: !reset null
+    image: ${REGISTRY_HOST}/${REGISTRY_NAMESPACE}/erp-finance:${IMAGE_TAG}
 
   hr:
     build: !reset null

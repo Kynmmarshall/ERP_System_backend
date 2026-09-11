@@ -5,11 +5,14 @@ from fastapi import Depends, FastAPI, Response, status
 from app.core.config import settings
 from app.core.db import database_is_ready
 from app.deps import get_current_claims
+from app.routers.academic import router as academic_router
 from app.schemas import PrincipalResponse
 
 logging.basicConfig(level=settings.log_level)
 
 app = FastAPI(title="ICT University ERP - Academic Service", version="0.1.0")
+
+app.include_router(academic_router, prefix="/api/v1/academic", tags=["academic"])
 
 
 @app.get("/healthz", tags=["health"])

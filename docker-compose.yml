@@ -72,6 +72,20 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  academic-worker:
+    build: ./services/academic
+    <<: *service_defaults
+    command: ["python", "-m", "app.worker"]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://academic_app:${ACADEMIC_DB_PASSWORD}@postgres:5432/academic_db
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
+      ENVIRONMENT: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
   finance:
     build: ./services/finance
     <<: *service_defaults
@@ -86,6 +100,20 @@ services:
       CAMERPAY_TARGET_ENVIRONMENT: ${CAMERPAY_TARGET_ENVIRONMENT}
     volumes:
       - ./ops/secrets/dev/jwt_public_key.pem:/run/secrets/jwt_public_key.pem:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  finance-worker:
+    build: ./services/finance
+    <<: *service_defaults
+    command: ["python", "-m", "app.consumer"]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://finance_app:${FINANCE_DB_PASSWORD}@postgres:5432/finance_db
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
+      ENVIRONMENT: development
     depends_on:
       postgres:
         condition: service_healthy

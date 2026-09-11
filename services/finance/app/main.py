@@ -5,11 +5,14 @@ from fastapi import Depends, FastAPI, Response, status
 from app.core.config import settings
 from app.core.db import database_is_ready
 from app.deps import get_current_claims
+from app.routers.finance import router as finance_router
 from app.schemas import PrincipalResponse
 
 logging.basicConfig(level=settings.log_level)
 
 app = FastAPI(title="ICT University ERP - Finance & Marketing Service", version="0.1.0")
+
+app.include_router(finance_router, prefix="/api/v1/finance", tags=["finance"])
 
 
 @app.get("/healthz", tags=["health"])
