@@ -4,6 +4,8 @@ from fastapi import FastAPI, Response, status
 
 from app.core.config import settings
 from app.core.db import database_is_ready
+from app.routers.auth import router as auth_router
+from app.routers.internal import router as internal_router
 
 logging.basicConfig(level=settings.log_level)
 
@@ -13,6 +15,9 @@ app = FastAPI(
     # Swagger/OpenAPI stay enabled here only for internal/dev use; the gateway
     # does not expose this service's docs publicly in production.
 )
+
+app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
+app.include_router(internal_router, prefix="/internal", tags=["internal"], include_in_schema=False)
 
 
 @app.get("/healthz", tags=["health"])
