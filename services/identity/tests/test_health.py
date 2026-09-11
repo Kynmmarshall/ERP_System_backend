@@ -1,6 +1,5 @@
 from httpx import ASGITransport, AsyncClient
 
-from app.core.db import database_is_ready
 from app.main import app
 
 
@@ -30,10 +29,10 @@ async def test_readyz_reports_unavailable_when_database_unreachable(monkeypatch)
     assert response.json() == {"status": "unavailable", "service": "identity", "reason": "database"}
 
 
-async def test_database_is_ready_returns_false_when_connection_fails() -> None:
-    # No real Postgres is reachable at settings.database_url in a unit-test
-    # context, so this exercises the real except-branch, not a mock.
-    assert await database_is_ready() is False
+# Unlike academic/finance/hr, identity's suite requires a real reachable
+# Postgres (see tests/test_auth.py) so there is no real-unreachable-database
+# branch to exercise here without a mock; that branch is instead already
+# covered by test_readyz_reports_unavailable_when_database_unreachable above.
 
 
 async def _true() -> bool:

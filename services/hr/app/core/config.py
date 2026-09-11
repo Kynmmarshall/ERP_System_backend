@@ -11,5 +11,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://hr_app:hr_dev_password@postgres:5432/hr_db"
     log_level: str = "INFO"
 
+    jwt_public_key_path: str = "/run/secrets/jwt_public_key.pem"
+
 
 settings = Settings()

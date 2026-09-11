@@ -12,5 +12,7 @@ class Settings(BaseSettings):
     rabbitmq_url: str = "amqp://erp_app:erp_dev_password@rabbitmq:5672/"
     log_level: str = "INFO"
 
+    jwt_public_key_path: str = "/run/secrets/jwt_public_key.pem"
+
 
 settings = Settings()

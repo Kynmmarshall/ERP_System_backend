@@ -46,6 +46,9 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://identity_app:${IDENTITY_DB_PASSWORD}@postgres:5432/identity_db
       ENVIRONMENT: development
+    volumes:
+      - ./ops/secrets/dev/jwt_private_key.pem:/run/secrets/jwt_private_key.pem:ro
+      - ./ops/secrets/dev/jwt_public_key.pem:/run/secrets/jwt_public_key.pem:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -57,6 +60,8 @@ services:
       DATABASE_URL: postgresql+asyncpg://academic_app:${ACADEMIC_DB_PASSWORD}@postgres:5432/academic_db
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
       ENVIRONMENT: development
+    volumes:
+      - ./ops/secrets/dev/jwt_public_key.pem:/run/secrets/jwt_public_key.pem:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -70,10 +75,13 @@ services:
       DATABASE_URL: postgresql+asyncpg://finance_app:${FINANCE_DB_PASSWORD}@postgres:5432/finance_db
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
       ENVIRONMENT: development
-      MOMO_SUBSCRIPTION_KEY: ${MOMO_SUBSCRIPTION_KEY}
-      MOMO_API_USER: ${MOMO_API_USER}
-      MOMO_API_KEY: ${MOMO_API_KEY}
-      MOMO_TARGET_ENVIRONMENT: ${MOMO_TARGET_ENVIRONMENT}
+      CAMERPAY_PROVIDER: ${CAMERPAY_PROVIDER}
+      CAMERPAY_SUBSCRIPTION_KEY: ${CAMERPAY_SUBSCRIPTION_KEY}
+      CAMERPAY_API_USER: ${CAMERPAY_API_USER}
+      CAMERPAY_API_KEY: ${CAMERPAY_API_KEY}
+      CAMERPAY_TARGET_ENVIRONMENT: ${CAMERPAY_TARGET_ENVIRONMENT}
+    volumes:
+      - ./ops/secrets/dev/jwt_public_key.pem:/run/secrets/jwt_public_key.pem:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -86,6 +94,8 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://hr_app:${HR_DB_PASSWORD}@postgres:5432/hr_db
       ENVIRONMENT: development
+    volumes:
+      - ./ops/secrets/dev/jwt_public_key.pem:/run/secrets/jwt_public_key.pem:ro
     depends_on:
       postgres:
         condition: service_healthy

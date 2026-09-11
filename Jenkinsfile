@@ -42,6 +42,36 @@ pipeline {
             }
         }
 
+        // Shared by every stage below: a dev JWT keypair (identity signs,
+        // every service verifies) and a real, migrated Postgres for
+        // identity's RLS/auth tests. Torn down once at the very end.
+        stage('Provision shared test infrastructure') {
+            options {
+                lock resource: 'erp-vps-heavy'
+            }
+            steps {
+                sh '''
+                    cp .env.example .env
+
+                    python3 -m venv .venv-keys
+                    . .venv-keys/bin/activate
+                    pip install --no-cache-dir cryptography
+                    python scripts/generate_dev_jwt_keys.py
+
+                    docker compose -p "$COMPOSE_PROJECT_NAME" -f docker-compose.yml -f docker-compose.test.yml up -d --build postgres
+                    docker compose -p "$COMPOSE_PROJECT_NAME" -f docker-compose.yml -f docker-compose.test.yml exec -T postgres \
+                        sh -c 'until pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"; do sleep 1; done'
+
+                    cd services/identity
+                    python3 -m venv .venv
+                    . .venv/bin/activate
+                    pip install --no-cache-dir -r requirements-dev.txt
+                    DATABASE_URL="postgresql+asyncpg://identity_app:identity_dev_password@127.0.0.1:55432/identity_db" \
+                        python -m alembic upgrade head
+                '''
+            }
+        }
+
         stage('Service checks') {
             matrix {
                 axes {
@@ -55,9 +85,17 @@ pipeline {
                         steps {
                             dir("services/${SERVICE}") {
                                 sh '''
-                                    python3 -m venv .venv
+                                    [ -d .venv ] || python3 -m venv .venv
                                     . .venv/bin/activate
                                     pip install --no-cache-dir -r requirements-dev.txt
+
+                                    export JWT_PUBLIC_KEY_PATH="$WORKSPACE/ops/secrets/dev/jwt_public_key.pem"
+                                    export JWT_PRIVATE_KEY_PATH_FOR_TESTS="$WORKSPACE/ops/secrets/dev/jwt_private_key.pem"
+                                    if [ "${SERVICE}" = "identity" ]; then
+                                        export JWT_PRIVATE_KEY_PATH="$WORKSPACE/ops/secrets/dev/jwt_private_key.pem"
+                                        export DATABASE_URL="postgresql+asyncpg://identity_app:identity_dev_password@127.0.0.1:55432/identity_db"
+                                    fi
+
                                     ruff check .
                                     mypy app
                                     pytest --junitxml=../../reports/${SERVICE}-junit.xml \
@@ -85,16 +123,8 @@ pipeline {
         }
 
         stage('Database isolation check') {
-            options {
-                lock resource: 'erp-vps-heavy'
-            }
             steps {
                 sh '''
-                    cp .env.example .env
-                    docker compose -p "$COMPOSE_PROJECT_NAME" -f docker-compose.yml -f docker-compose.test.yml up -d --build postgres
-                    docker compose -p "$COMPOSE_PROJECT_NAME" -f docker-compose.yml -f docker-compose.test.yml exec -T postgres \
-                        sh -c 'until pg_isready -U "$POSTGRES_USER"; do sleep 1; done'
-
                     python3 -m venv .venv-integration
                     . .venv-integration/bin/activate
                     pip install --no-cache-dir -r tests/integration/requirements.txt
@@ -103,9 +133,6 @@ pipeline {
             }
             post {
                 always {
-                    sh '''
-                        docker compose -p "$COMPOSE_PROJECT_NAME" -f docker-compose.yml -f docker-compose.test.yml down -v --remove-orphans || true
-                    '''
                     junit allowEmptyResults: true, testResults: 'reports/db-isolation-junit.xml'
                 }
             }
@@ -114,6 +141,9 @@ pipeline {
 
     post {
         always {
+            sh '''
+                docker compose -p "$COMPOSE_PROJECT_NAME" -f docker-compose.yml -f docker-compose.test.yml down -v --remove-orphans || true
+            '''
             archiveArtifacts allowEmptyArchive: true, artifacts: 'reports/**'
         }
     }

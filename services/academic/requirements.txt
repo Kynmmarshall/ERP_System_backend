@@ -6,3 +6,4 @@ sqlalchemy[asyncio]==2.0.37
 asyncpg==0.30.0
 alembic==1.14.1
 aio-pika==9.5.4
+pyjwt[crypto]==2.10.1

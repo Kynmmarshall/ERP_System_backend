@@ -8,3 +8,4 @@ alembic==1.14.1
 aio-pika==9.5.4
 httpx==0.28.1
 reportlab==4.2.5
+pyjwt[crypto]==2.10.1

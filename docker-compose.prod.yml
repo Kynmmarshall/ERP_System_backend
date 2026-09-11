@@ -8,18 +8,29 @@ services:
   identity:
     build: !reset null
     image: ${REGISTRY_HOST}/${REGISTRY_NAMESPACE}/erp-identity:${IMAGE_TAG}
+    # Real secret files provisioned on the VPS by the Jenkins deployment
+    # pipeline (see ops/jenkins) - never the ops/secrets/dev keypair.
+    volumes: !override
+      - ${JWT_PRIVATE_KEY_FILE}:/run/secrets/jwt_private_key.pem:ro
+      - ${JWT_PUBLIC_KEY_FILE}:/run/secrets/jwt_public_key.pem:ro
 
   academic:
     build: !reset null
     image: ${REGISTRY_HOST}/${REGISTRY_NAMESPACE}/erp-academic:${IMAGE_TAG}
+    volumes: !override
+      - ${JWT_PUBLIC_KEY_FILE}:/run/secrets/jwt_public_key.pem:ro
 
   finance:
     build: !reset null
     image: ${REGISTRY_HOST}/${REGISTRY_NAMESPACE}/erp-finance:${IMAGE_TAG}
+    volumes: !override
+      - ${JWT_PUBLIC_KEY_FILE}:/run/secrets/jwt_public_key.pem:ro
 
   hr:
     build: !reset null
     image: ${REGISTRY_HOST}/${REGISTRY_NAMESPACE}/erp-hr:${IMAGE_TAG}
+    volumes: !override
+      - ${JWT_PUBLIC_KEY_FILE}:/run/secrets/jwt_public_key.pem:ro
 
   frontend:
     build: !reset null

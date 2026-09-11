@@ -23,7 +23,9 @@ async def client():
         yield ac
 
 
-async def _create_user(*, role: Role = Role.STUDENT, password: str = "correct horse battery staple") -> tuple[User, Institution]:
+async def _create_user(
+    *, role: Role = Role.STUDENT, password: str = "correct horse battery staple"
+) -> tuple[User, Institution]:
     unique = uuid.uuid4().hex[:10]
     async with SessionFactory() as session:
         await set_platform_context(session)
@@ -64,6 +66,20 @@ async def test_login_with_wrong_password_is_rejected(client) -> None:
     user, _ = await _create_user(password="correct horse battery staple")
 
     response = await client.post("/api/v1/auth/login", json={"email": user.email, "password": "wrong"})
+
+    assert response.status_code == 401
+
+
+async def test_login_with_unknown_email_is_rejected(client) -> None:
+    response = await client.post(
+        "/api/v1/auth/login", json={"email": "nobody@example.com", "password": "whatever"}
+    )
+
+    assert response.status_code == 401
+
+
+async def test_refresh_without_cookie_is_rejected(client) -> None:
+    response = await client.post("/api/v1/auth/refresh")
 
     assert response.status_code == 401
 
