@@ -5,7 +5,12 @@ from fastapi import Depends, FastAPI, Response, status
 from app.core.config import settings
 from app.core.db import database_is_ready
 from app.deps import get_current_claims
+from app.routers.campaigns import router as campaigns_router
+from app.routers.expenses import router as expenses_router
 from app.routers.finance import router as finance_router
+from app.routers.payments import router as payments_router
+from app.routers.reports import router as reports_router
+from app.routers.summaries import router as summaries_router
 from app.schemas import PrincipalResponse
 
 logging.basicConfig(level=settings.log_level)
@@ -13,6 +18,11 @@ logging.basicConfig(level=settings.log_level)
 app = FastAPI(title="ICT University ERP - Finance & Marketing Service", version="0.1.0")
 
 app.include_router(finance_router, prefix="/api/v1/finance", tags=["finance"])
+app.include_router(payments_router, prefix="/api/v1/finance", tags=["payments"])
+app.include_router(expenses_router, prefix="/api/v1/finance", tags=["expenses"])
+app.include_router(campaigns_router, prefix="/api/v1/finance", tags=["campaigns"])
+app.include_router(summaries_router, prefix="/api/v1/finance", tags=["summaries"])
+app.include_router(reports_router, prefix="/api/v1/finance", tags=["reports"])
 
 
 @app.get("/healthz", tags=["health"])

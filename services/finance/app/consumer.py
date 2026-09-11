@@ -18,6 +18,7 @@ from app.core.db import SessionFactory
 from app.core.rabbitmq import connect, declare_enrollment_queue
 from app.core.tenant_context import set_platform_context
 from app.models.finance import FeeSchedule, InboxEvent, Invoice
+from app.payment_worker import run_payment_reconciliation_loop, run_summary_catch_up_loop
 
 logging.basicConfig(level=settings.log_level)
 logger = logging.getLogger("finance.consumer")
@@ -126,7 +127,14 @@ async def run_forever() -> None:
         queue = await declare_enrollment_queue(channel)
         logger.info("Finance consumer started, listening on %s", queue.name)
         await queue.consume(handle_message)
-        await asyncio.Future()  # run forever
+        # Payment reconciliation and monthly-summary catch-up run as
+        # concurrent tasks in this same worker process rather than as
+        # separate containers - see phase5-plan.md.
+        await asyncio.gather(
+            asyncio.Future(),
+            run_payment_reconciliation_loop(),
+            run_summary_catch_up_loop(),
+        )
 
 
 if __name__ == "__main__":

@@ -14,5 +14,11 @@ class Settings(BaseSettings):
 
     jwt_public_key_path: str = "/run/secrets/jwt_public_key.pem"
 
+    camerpay_provider: str = "test_double"
+    camerpay_subscription_key: str = ""
+    camerpay_api_user: str = ""
+    camerpay_api_key: str = ""
+    camerpay_target_environment: str = "sandbox"
+
 
 settings = Settings()
