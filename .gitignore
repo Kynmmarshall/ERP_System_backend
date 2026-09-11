@@ -1,5 +1,6 @@
 venv/
 .venv/
+.venv-integration/
 __pycache__/
 *.pyc
 .pytest_cache/
@@ -11,3 +12,5 @@ htmlcov/
 .coverage
 dist/
 build/
+reports/
+*.log
