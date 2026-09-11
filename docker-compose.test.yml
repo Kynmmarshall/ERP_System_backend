@@ -1,0 +1,21 @@
+# Isolated, ephemeral stack for CI/local integration tests. Never used for
+# real data. Run with a dedicated project name so it cannot collide with a
+# developer's local dev stack or with production:
+#   docker compose -p erp-ci -f docker-compose.yml -f docker-compose.test.yml up -d --build
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes: !override
+      - ./ops/postgres/init:/docker-entrypoint-initdb.d:ro
+    tmpfs:
+      - /var/lib/postgresql/data
+
+  rabbitmq:
+    volumes: !override []
+    tmpfs:
+      - /var/lib/rabbitmq
+
+  gateway:
+    ports:
+      - "127.0.0.1:18081:80"

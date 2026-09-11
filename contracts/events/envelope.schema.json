@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://erp.ictuniversity.internal/contracts/events/envelope.schema.json",
+  "title": "EventEnvelope",
+  "type": "object",
+  "required": [
+    "event_id",
+    "event_type",
+    "schema_version",
+    "tenant_id",
+    "occurred_at",
+    "correlation_id",
+    "data"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique id for this event instance; used for consumer idempotency."
+    },
+    "event_type": {
+      "type": "string",
+      "description": "Dotted event name, e.g. academic.enrollment_accepted."
+    },
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Monotonic version of the event_type's payload schema."
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Institution tenant the event belongs to."
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC timestamp the source transaction committed."
+    },
+    "correlation_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Ties together events/requests belonging to the same business flow."
+    },
+    "data": {
+      "type": "object",
+      "description": "Event-type-specific payload, validated against its own schema."
+    }
+  },
+  "additionalProperties": false
+}

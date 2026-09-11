@@ -1,0 +1,117 @@
+name: erp-system
+
+x-service-defaults: &service_defaults
+  restart: unless-stopped
+  networks:
+    - erp_internal
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    <<: *service_defaults
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      IDENTITY_DB_PASSWORD: ${IDENTITY_DB_PASSWORD}
+      ACADEMIC_DB_PASSWORD: ${ACADEMIC_DB_PASSWORD}
+      FINANCE_DB_PASSWORD: ${FINANCE_DB_PASSWORD}
+      HR_DB_PASSWORD: ${HR_DB_PASSWORD}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./ops/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    <<: *service_defaults
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  identity:
+    build: ./services/identity
+    <<: *service_defaults
+    environment:
+      DATABASE_URL: postgresql+asyncpg://identity_app:${IDENTITY_DB_PASSWORD}@postgres:5432/identity_db
+      ENVIRONMENT: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  academic:
+    build: ./services/academic
+    <<: *service_defaults
+    environment:
+      DATABASE_URL: postgresql+asyncpg://academic_app:${ACADEMIC_DB_PASSWORD}@postgres:5432/academic_db
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
+      ENVIRONMENT: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  finance:
+    build: ./services/finance
+    <<: *service_defaults
+    environment:
+      DATABASE_URL: postgresql+asyncpg://finance_app:${FINANCE_DB_PASSWORD}@postgres:5432/finance_db
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
+      ENVIRONMENT: development
+      MOMO_SUBSCRIPTION_KEY: ${MOMO_SUBSCRIPTION_KEY}
+      MOMO_API_USER: ${MOMO_API_USER}
+      MOMO_API_KEY: ${MOMO_API_KEY}
+      MOMO_TARGET_ENVIRONMENT: ${MOMO_TARGET_ENVIRONMENT}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  hr:
+    build: ./services/hr
+    <<: *service_defaults
+    environment:
+      DATABASE_URL: postgresql+asyncpg://hr_app:${HR_DB_PASSWORD}@postgres:5432/hr_db
+      ENVIRONMENT: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ../ERP_System
+    <<: *service_defaults
+    # Not published to the host: only the gateway is a public entry point.
+
+  gateway:
+    build: ./gateway
+    <<: *service_defaults
+    ports:
+      - "8081:80"
+    depends_on:
+      - frontend
+      - identity
+      - academic
+      - finance
+      - hr
+
+networks:
+  erp_internal:
+    driver: bridge
+
+volumes:
+  pg_data:
+  rabbitmq_data:

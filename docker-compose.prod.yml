@@ -1,0 +1,34 @@
+# Production overrides: no build contexts, pinned registry images, no dev ports.
+# Deploy with:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# REGISTRY_HOST / REGISTRY_NAMESPACE / IMAGE_TAG are supplied by the Jenkins
+# deployment pipeline (see ops/jenkins) and must reference an already-pushed,
+# already-tested image digest - never a floating `latest` tag.
+services:
+  identity:
+    build: !reset null
+    image: ${REGISTRY_HOST}/${REGISTRY_NAMESPACE}/erp-identity:${IMAGE_TAG}
+
+  academic:
+    build: !reset null
+    image: ${REGISTRY_HOST}/${REGISTRY_NAMESPACE}/erp-academic:${IMAGE_TAG}
+
+  finance:
+    build: !reset null
+    image: ${REGISTRY_HOST}/${REGISTRY_NAMESPACE}/erp-finance:${IMAGE_TAG}
+
+  hr:
+    build: !reset null
+    image: ${REGISTRY_HOST}/${REGISTRY_NAMESPACE}/erp-hr:${IMAGE_TAG}
+
+  frontend:
+    build: !reset null
+    image: ${REGISTRY_HOST}/${REGISTRY_NAMESPACE}/erp-frontend:${IMAGE_TAG}
+
+  gateway:
+    build: !reset null
+    image: ${REGISTRY_HOST}/${REGISTRY_NAMESPACE}/erp-gateway:${IMAGE_TAG}
+    ports:
+      # Bound to loopback only; the host's existing Nginx terminates TLS on
+      # ERP_DOMAIN and proxies to 127.0.0.1:8081. Never publish 0.0.0.0 here.
+      - "127.0.0.1:8081:80"

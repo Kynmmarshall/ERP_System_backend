@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://erp.ictuniversity.internal/contracts/events/enrollment-accepted.v1.schema.json",
+  "title": "EnrollmentAccepted.v1",
+  "type": "object",
+  "required": [
+    "enrollment_id",
+    "student_id",
+    "program_id",
+    "term_id",
+    "campus_id"
+  ],
+  "properties": {
+    "enrollment_id": { "type": "string", "format": "uuid" },
+    "student_id": { "type": "string", "format": "uuid" },
+    "program_id": { "type": "string", "format": "uuid" },
+    "term_id": { "type": "string", "format": "uuid" },
+    "campus_id": { "type": "string", "format": "uuid" }
+  },
+  "additionalProperties": false
+}
