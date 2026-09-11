@@ -76,6 +76,8 @@ services:
     build: ./services/academic
     <<: *service_defaults
     command: ["python", "-m", "app.worker"]
+    healthcheck:
+      disable: true
     environment:
       DATABASE_URL: postgresql+asyncpg://academic_app:${ACADEMIC_DB_PASSWORD}@postgres:5432/academic_db
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
@@ -110,6 +112,8 @@ services:
     build: ./services/finance
     <<: *service_defaults
     command: ["python", "-m", "app.consumer"]
+    healthcheck:
+      disable: true
     environment:
       DATABASE_URL: postgresql+asyncpg://finance_app:${FINANCE_DB_PASSWORD}@postgres:5432/finance_db
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
