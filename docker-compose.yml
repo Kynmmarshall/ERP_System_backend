@@ -46,6 +46,10 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://identity_app:${IDENTITY_DB_PASSWORD}@postgres:5432/identity_db
       ENVIRONMENT: development
+      # Plain HTTP locally - a Secure cookie would be silently dropped by the
+      # browser. Production (behind real HTTPS) keeps the safe default (true)
+      # by simply not setting this in docker-compose.prod.yml.
+      REFRESH_COOKIE_SECURE: "false"
     volumes:
       - ./ops/secrets/dev/jwt_private_key.pem:/run/secrets/jwt_private_key.pem:ro
       - ./ops/secrets/dev/jwt_public_key.pem:/run/secrets/jwt_public_key.pem:ro
