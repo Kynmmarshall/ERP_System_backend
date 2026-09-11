@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     jwt_public_key_path: str = "/run/secrets/jwt_public_key.pem"
+    hr_qr_signing_secret: str = "dev-only-insecure-default-change-me"
 
 
 settings = Settings()

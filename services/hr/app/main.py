@@ -5,11 +5,24 @@ from fastapi import Depends, FastAPI, Response, status
 from app.core.config import settings
 from app.core.db import database_is_ready
 from app.deps import get_current_claims
+from app.routers.assets import router as assets_router
+from app.routers.attendance import router as attendance_router
+from app.routers.leave import router as leave_router
+from app.routers.payroll import router as payroll_router
+from app.routers.performance import router as performance_router
+from app.routers.recruitment import router as recruitment_router
 from app.schemas import PrincipalResponse
 
 logging.basicConfig(level=settings.log_level)
 
 app = FastAPI(title="ICT University ERP - Administration & HR Service", version="0.1.0")
+
+app.include_router(recruitment_router, prefix="/api/v1/hr", tags=["recruitment"])
+app.include_router(attendance_router, prefix="/api/v1/hr", tags=["attendance"])
+app.include_router(leave_router, prefix="/api/v1/hr", tags=["leave"])
+app.include_router(performance_router, prefix="/api/v1/hr", tags=["performance"])
+app.include_router(assets_router, prefix="/api/v1/hr", tags=["assets"])
+app.include_router(payroll_router, prefix="/api/v1/hr", tags=["payroll"])
 
 
 @app.get("/healthz", tags=["health"])

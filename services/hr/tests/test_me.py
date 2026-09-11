@@ -2,6 +2,7 @@
 the SAME dev private key identity uses (JWT_PRIVATE_KEY_PATH_FOR_TESTS env
 var), never by importing identity's code.
 """
+
 import os
 import uuid
 from datetime import UTC, datetime, timedelta

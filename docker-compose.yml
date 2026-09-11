@@ -135,6 +135,7 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://hr_app:${HR_DB_PASSWORD}@postgres:5432/hr_db
       ENVIRONMENT: development
+      HR_QR_SIGNING_SECRET: ${HR_QR_SIGNING_SECRET}
     volumes:
       - ./ops/secrets/dev/jwt_public_key.pem:/run/secrets/jwt_public_key.pem:ro
     depends_on:

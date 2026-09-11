@@ -16,6 +16,7 @@ COPY --from=builder /opt/venv /opt/venv
 COPY app ./app
 COPY alembic.ini ./alembic.ini
 COPY alembic ./alembic
+COPY scripts ./scripts
 USER app
 EXPOSE 8000
 HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=3 \
