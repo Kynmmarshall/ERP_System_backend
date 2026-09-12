@@ -1,4 +1,5 @@
-fastapi==0.115.6
+fastapi==0.141.1
+starlette==1.6.0
 uvicorn[standard]==0.34.0
 pydantic==2.10.5
 pydantic-settings==2.7.1
@@ -8,4 +9,4 @@ alembic==1.14.1
 aio-pika==9.5.4
 httpx==0.28.1
 reportlab==4.2.5
-pyjwt[crypto]==2.10.1
+pyjwt[crypto]==2.14.0

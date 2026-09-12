@@ -15,7 +15,13 @@ from app.schemas import PrincipalResponse
 
 logging.basicConfig(level=settings.log_level)
 
-app = FastAPI(title="ICT University ERP - Finance & Marketing Service", version="0.1.0")
+app = FastAPI(
+    title="ICT University ERP - Finance & Marketing Service",
+    version="0.1.0",
+    docs_url=None if settings.environment == "production" else "/docs",
+    redoc_url=None if settings.environment == "production" else "/redoc",
+    openapi_url=None if settings.environment == "production" else "/openapi.json",
+)
 
 app.include_router(finance_router, prefix="/api/v1/finance", tags=["finance"])
 app.include_router(payments_router, prefix="/api/v1/finance", tags=["payments"])

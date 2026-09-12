@@ -1,4 +1,5 @@
-fastapi==0.115.6
+fastapi==0.141.1
+starlette==1.6.0
 uvicorn[standard]==0.34.0
 pydantic==2.10.5
 pydantic-settings==2.7.1
@@ -7,4 +8,4 @@ asyncpg==0.30.0
 alembic==1.14.1
 qrcode[pil]==8.0
 reportlab==4.2.5
-pyjwt[crypto]==2.10.1
+pyjwt[crypto]==2.14.0

@@ -12,8 +12,13 @@ logging.basicConfig(level=settings.log_level)
 app = FastAPI(
     title="ICT University ERP - Identity Service",
     version="0.1.0",
-    # Swagger/OpenAPI stay enabled here only for internal/dev use; the gateway
-    # does not expose this service's docs publicly in production.
+    # Defense in depth: the gateway never proxies /docs, /redoc or
+    # /openapi.json, and production does not publish this service's port
+    # directly - but disable them here too so a misconfigured port publish
+    # never exposes the schema.
+    docs_url=None if settings.environment == "production" else "/docs",
+    redoc_url=None if settings.environment == "production" else "/redoc",
+    openapi_url=None if settings.environment == "production" else "/openapi.json",
 )
 
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
