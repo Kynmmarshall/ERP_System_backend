@@ -15,8 +15,14 @@
 // (gateway/nginx.conf), which many concurrent logins would immediately
 // trip. This test measures ordinary authenticated CRUD READ latency
 // (plan.md's target), not the login endpoint itself.
+//
+// Each VU also sleeps between iterations (see the bottom of the default
+// function) - all VUs here share ONE source IP (this load-generator
+// host), unlike real distributed production traffic, so the gateway's
+// general per-client-IP budget (20 req/s + burst 40) must be paced around
+// deliberately or the run measures the rate limiter, not read latency.
 import http from 'k6/http'
-import { check } from 'k6'
+import { check, sleep } from 'k6'
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8081'
 const ADMIN_EMAIL = __ENV.ADMIN_EMAIL || 'admin@ictuniversity.example'
@@ -67,4 +73,19 @@ export default function (data) {
     const res = http.get(url, { headers, tags: { kind: 'read' } })
     check(res, { 'read succeeded': (r) => r.status === 200 })
   }
+
+  // Simulated user think-time. This is load-bearing, not cosmetic: every
+  // VU here shares the SAME source IP (this one load-generator host),
+  // unlike real production traffic spread across many users/networks, so
+  // without pacing this scenario's aggregate request rate trips the
+  // gateway's own per-client-IP anti-abuse budget
+  // (gateway/nginx.conf: 20 req/s + burst 40) almost immediately - that is
+  // the rate limiter correctly doing its job against a single abusive
+  // source, not a measurement of real p95 read latency. 8s keeps 25 VUs *
+  // 4 reads/iteration well under that shared budget.
+  // Simulated user think-time, randomized per iteration so 25 VUs don't
+  // stay wall-clock-synchronized (real users never click in lockstep) -
+  // see the file header for why pacing here is load-bearing, not
+  // cosmetic.
+  sleep(10 + Math.random() * 10)
 }
