@@ -1,0 +1,35 @@
+@startuml
+!include theme.puml
+title Browser session | Observable state and retry policy
+[*] --> Loading : App mounts
+state "loading" as Loading
+state "unauthenticated" as Guest
+state "authenticated\nprincipal in React context" as Auth
+state "request refresh in flight\nAuthContext may remain authenticated" as Refresh
+Loading --> Auth : Refresh succeeds + GET /me succeeds
+Loading --> Guest : Refresh or principal restoration fails
+Guest --> Auth : Login succeeds + GET /me
+Guest --> Guest : Invalid form / credentials\nshow inline error
+Auth --> Refresh : Protected request returns 401
+Refresh --> Auth : Refresh succeeds; original request\nretried once and no longer 401
+Refresh --> Guest : Refresh fails OR retry is 401\nsession-expired handler
+Auth --> Guest : Logout promise resolves
+note right of Loading
+Loading route: accessible status spinner.
+Guest protected route: redirect /login,
+remember original pathname.
+Successful login navigates back.
+end note
+note right of Refresh
+One module-level Promise deduplicates
+refresh within one browser JS runtime.
+No shared multi-tab coordination.
+No scheduled proactive expiry timer.
+end note
+note bottom of Auth
+Access JWT is not in localStorage/sessionStorage.
+HttpOnly refresh cookie survives reload for restoration.
+Query cache is separate and not cleared by auth transitions.
+Logout network-error path requires further UX verification.
+end note
+@enduml

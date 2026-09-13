@@ -1,0 +1,41 @@
+@startuml
+!include theme.puml
+title Leave | Self-service request, segregated decision and notification
+autonumber
+actor "Employee\nstaff UI" as E
+participant "HR API" as HR
+database hr_db as DB
+actor "HR approver\nadmin/super-admin API" as A
+E -> HR : POST leave/requests + bearer token
+HR -> DB : Find employee by verified user_id
+HR -> HR : Validate end >= start
+HR -> DB : INSERT pending LeaveRequest; COMMIT
+HR --> E : 201 pending request
+A -> HR : POST leave/requests/{id}/decision
+HR -> DB : Fetch tenant request + employee
+alt Not pending
+  HR --> A : 409 Already decided
+else Approver is the request employee
+  HR --> A : 403 No self-approval
+else Authorized different approver
+  group One transaction
+    HR -> DB : Set approved/rejected + actor/time
+    opt Employee has linked identity user
+      HR -> DB : INSERT Notification(user_id, message)
+    end
+    HR -> DB : COMMIT
+  end
+  HR --> A : Decision response
+end
+E -> HR : GET notifications/mine
+HR --> E : User-scoped in-app records
+E -> HR : POST notifications/{id}/read
+HR -> DB : Check ownership; set read_at once; COMMIT
+HR --> E : Updated notification
+note over E,A
+Employee UI exists; decision UI does not.
+Notifications are fetched, not email/SMS/push messages.
+No timer-driven notification polling is configured in the current UI.
+Concurrent decision serialization is a separate acceptance test.
+end note
+@enduml

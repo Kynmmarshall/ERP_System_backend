@@ -1,0 +1,88 @@
+@startuml
+!include theme.puml
+title Finance and payroll | Implementation class collaboration
+top to bottom direction
+interface PaymentGateway {
+  +request_to_pay(reference, amount_xaf, payer_msisdn)
+  +get_status(reference, requested_at, payer_msisdn)
+}
+class MtnMomoGateway {
+  -_access_token
+  -_token_expires_at
+  +request_to_pay(...)
+  +get_status(...)
+}
+class "CamerPayTestDoubleGateway" as TestGateway {
+  +request_to_pay(...)
+  +get_status(...)
+}
+class PaymentIntent {
+  id: UUID
+  invoice_id: UUID
+  provider_reference: unique string
+  amount_xaf: integer
+  status: pending | succeeded | failed
+}
+class Invoice {
+  id: UUID
+  enrollment_id: opaque UUID
+  student_id: opaque UUID
+  amount_xaf: integer
+  status: pending | paid
+}
+class Receipt {
+  invoice_id: UUID
+  payment_intent_id: UUID
+  amount_xaf: integer
+}
+class "reconciliation module" as Reconcile <<module>> {
+  +reconcile_intent(session, gateway, intent_id)
+}
+class "ledger module" as Ledger <<module>> {
+  +post_balanced(session, institution_id, lines, description)
+}
+class LedgerLine <<frozen dataclass>> {
+  entry_type
+  direction
+  amount_xaf
+  reference_type
+  reference_id
+}
+class ScheduleRates <<frozen dataclass>> {
+  cnps_employee_rate: Decimal
+  cnps_employer_rate: Decimal
+  cnps_ceiling_xaf: integer
+  standard_deduction_rate: Decimal
+  irpp_brackets: list
+}
+class PayslipBreakdown <<frozen dataclass>> {
+  gross_xaf
+  cnps_employee_xaf
+  cnps_employer_xaf
+  taxable_base_xaf
+  irpp_xaf
+  net_xaf
+}
+class "payroll module" as Payroll <<module>> {
+  +calculate_payslip(gross_xaf, schedule)
+  -_apply_irpp_brackets(base, brackets)
+  -_round_xaf(value)
+}
+PaymentGateway <|.. MtnMomoGateway
+PaymentGateway <|.. TestGateway
+Reconcile ..> PaymentGateway : queries
+Reconcile ..> PaymentIntent : locks / transitions
+Reconcile ..> Invoice : locks / settles
+Reconcile ..> Receipt : creates
+Reconcile ..> Ledger : posts on success
+Ledger ..> LedgerLine : balances
+Invoice "1" -- "0..*" PaymentIntent
+Invoice "1" -- "0..1" Receipt
+Payroll ..> ScheduleRates : reads
+Payroll ..> PayslipBreakdown : returns
+note bottom of Payroll
+Class diagram uses real ORM/dataclass/protocol concepts.
+Module boxes are functions, not invented service classes.
+Payroll has no call to Finance and does not transfer funds.
+end note
+@enduml

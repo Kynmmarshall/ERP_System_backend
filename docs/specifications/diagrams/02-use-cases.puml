@@ -1,0 +1,52 @@
+@startuml
+!include theme.puml
+title ERP | Actors and core use cases
+left to right direction
+actor Student as S
+actor "Staff\n(instructor / employee)" as T
+actor Admin as A
+actor "Super admin" as SA
+actor "Payment provider" as P
+rectangle "ERP: web screens + business APIs" {
+  usecase "Authenticate /\nrotate session" as login
+  usecase "Enroll + view\nasynchronous invoice" as enroll
+  usecase "Register offering /\ncheck prerequisites" as register
+  usecase "View grades /\nappeal / PDF reports" as grades
+  usecase "Pay tuition /\ndownload receipt" as pay
+  usecase "Manage teaching,\nexams and appeals\n(API-only staff UI gap)" as teaching
+  usecase "Fees / expenses /\ncampaigns / summaries\n(API-only staff UI gap)" as finance
+  usecase "Own leave, check-in,\nnotifications, payslips" as own
+  usecase "Recruitment / assets /\nleave decisions / payroll\n(API-only admin UI gap)" as hr
+  usecase "Attest payroll\nrate schedule" as attest
+  usecase "Obtain provider\nsettlement status" as status
+}
+S --> login
+T --> login
+A --> login
+SA --> login
+S --> enroll
+S --> register
+S --> grades
+S --> pay
+T --> teaching
+T --> finance
+T --> own
+A --> teaching
+A --> finance
+A --> hr
+SA --> hr
+SA --> attest
+pay ..> status : <<include>>
+P --> status
+note bottom of teaching
+Staff teaching actions require assigned offering.
+Admin and super-admin may manage offerings.
+UI route guard authenticates; page-level checks
+show student/staff content or explicit placeholders.
+end note
+note bottom of attest
+Attestation is manual, not automated tax validation.
+Tenant context is required for ordinary mutations.
+Actors describe permissions, not implemented admin screens.
+end note
+@enduml

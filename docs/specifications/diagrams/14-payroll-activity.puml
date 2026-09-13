@@ -1,0 +1,51 @@
+@startuml
+!include theme.puml
+title Payroll | Draft calculation and explicit approval gate
+start
+partition "HR administrator (API; admin UI pending)" {
+  :Choose institution, period\nand schedule_version_id;
+  if (Schedule exists?) then (yes)
+  else (no)
+    :404 Schedule not found;
+    stop
+  endif
+  :Insert draft PayrollRun;
+  if (Duplicate institution/period?) then (yes)
+    :Rollback and return 409;
+    stop
+  endif
+}
+partition "Pure calculation + one database transaction" {
+  :Read active employees;
+  while (Another employee?) is (yes)
+    :gross -> capped CNPS employee/employer;
+    :taxable = max(0,\n(gross - unrounded employee CNPS)\n* (1 - standard deduction rate));
+    :Apply marginal IRPP brackets\nto unrounded taxable value;
+    :Round output amounts HALF_UP;\nnet = gross - rounded employee CNPS - rounded IRPP;
+    :Insert immutable-by-API\npayslip snapshot;
+  endwhile (no)
+  :Commit draft run + all payslips;
+}
+partition "Approval (separate request)" {
+  :Fetch draft run + schedule;
+  if (Already approved?) then (yes)
+    :409 Already approved;
+    stop
+  endif
+  if (Schedule manually verified?) then (no)
+    :403 Approval blocked;\nkeep draft;
+    stop
+  else (yes)
+    :Set approved, approved_by,\napproved_at; commit;
+  endif
+}
+partition "Employee frontend" {
+  :GET own payslips;\nonly approved runs visible;
+}
+note right
+Super-admin attests the schedule through a separate endpoint.
+is_verified is not proof of statutory accuracy.
+No bank transfer or Finance ledger event is emitted.
+end note
+stop
+@enduml

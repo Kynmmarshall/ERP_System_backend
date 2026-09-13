@@ -1,0 +1,29 @@
+@startuml
+!include theme.puml
+title Grade appeal | Actual state transitions and guards
+[*] --> Submitted : Student owns published grade\nNo existing open appeal
+state "submitted" as Submitted
+state "under_review" as Review
+state "accepted" as Accepted
+state "rejected" as Rejected
+Submitted --> Review : Authorized reviewer
+Submitted --> Accepted : corrected_score provided\n0 <= score <= max_score
+Submitted --> Rejected : Authorized reviewer
+Review --> Accepted : corrected_score provided\n0 <= score <= max_score
+Review --> Rejected : Authorized reviewer
+Accepted --> [*]
+Rejected --> [*]
+note right of Accepted
+If score changes:
+  append GradeAuditLog(old, new, actor, reason)
+  update Grade.score
+Persist decision + correction in one commit.
+Unchanged accepted score adds no change log.
+end note
+note bottom of Review
+Reviewer = assigned instructor or admin/super-admin.
+Final-state reopening -> 409.
+Invalid status / missing or out-of-range correction -> 400.
+Ordinary grade-entry edits are not an immutable audit workflow.
+end note
+@enduml

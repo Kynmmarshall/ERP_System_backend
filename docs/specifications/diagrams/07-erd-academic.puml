@@ -1,0 +1,106 @@
+@startuml
+!include theme.puml
+title Academic database | Curriculum and learner records
+entity "programs" as p {
+  * id : UUID <<PK>>
+  institution_id
+  code : unique per institution
+}
+entity "terms" as t {
+  * id : UUID <<PK>>
+  institution_id
+  starts_on / ends_on
+}
+entity "enrollments" as e {
+  * id : UUID <<PK>>
+  program_id / term_id : <<FK>>
+  institution_id / campus_id / student_id
+  status : accepted
+}
+entity "courses" as c {
+  * id : UUID <<PK>>
+  program_id : <<FK>>
+  code / name / credits
+}
+entity "course_prerequisites" as cp {
+  * id : UUID <<PK>>
+  course_id : <<FK>>
+  prerequisite_course_id : <<FK>>
+}
+entity "course_offerings" as co {
+  * id : UUID <<PK>>
+  course_id / term_id : <<FK>>
+  instructor_id : opaque UUID
+  room / capacity
+}
+entity "course_registrations" as cr {
+  * id : UUID <<PK>>
+  enrollment_id / course_offering_id : <<FK>>
+  student_id : opaque UUID
+}
+entity "attendance_sessions" as ats {
+  * id : UUID <<PK>>
+  course_offering_id : <<FK>>
+  session_date
+}
+entity "attendance_records" as ar {
+  * id : UUID <<PK>>
+  attendance_session_id : <<FK>>
+  student_id / present
+}
+entity "assessments" as a {
+  * id : UUID <<PK>>
+  course_offering_id : <<FK>>
+  name / max_score
+}
+entity "grades" as g {
+  * id : UUID <<PK>>
+  assessment_id : <<FK>>
+  student_id / score / published
+}
+entity "grade_appeals" as ga {
+  * id : UUID <<PK>>
+  grade_id : <<FK>>
+  student_id / status / reason
+  reviewer_notes / decided_by / decided_at
+}
+entity "grade_audit_logs" as gal {
+  * id : UUID <<PK>>
+  grade_id : <<FK>>
+  old_score / new_score / changed_by
+}
+entity "exam_schedules" as ex {
+  * id : UUID <<PK>>
+  course_offering_id / term_id : <<FK>>
+  room / starts_at / ends_at
+}
+entity "outbox_events" as ob {
+  * id : UUID <<PK, event_id>>
+  institution_id / correlation_id
+  event_type / schema_version / payload
+  created_at / published_at
+}
+p ||--o{ e
+t ||--o{ e
+p ||--o{ c
+c ||--o{ cp : course
+c ||--o{ cp : prerequisite
+c ||--o{ co
+t ||--o{ co
+e ||--o{ cr
+co ||--o{ cr
+co ||--o{ ats
+ats ||--o{ ar
+co ||--o{ a
+a ||--o{ g
+g ||--o{ ga
+g ||--o{ gal
+co ||--o| ex
+t ||--o{ ex
+e ..> ob : atomic write\npayload link, NOT FK
+note bottom of ob
+Tenant-owned tables carry institution_id.
+Outbox is internal plumbing, intentionally without RLS.
+Student/instructor/campus IDs are external opaque references.
+end note
+@enduml

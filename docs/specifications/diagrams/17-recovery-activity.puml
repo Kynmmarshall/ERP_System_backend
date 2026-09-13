@@ -1,0 +1,32 @@
+@startuml
+!include theme.puml
+title Recovery runbook | TARGET full-system procedure
+start
+:Declare incident;\nrecord desired recovery timestamp and authorization;
+:Quiesce API writes and stop workers;\nisolate old broker queues;
+:Select verified off-host base backup\nand required WAL chain;
+if (Backup/WAL integrity sufficient?) then (no)
+  :Abort promotion;\nescalate missing recovery evidence;
+  stop
+endif
+:Restore isolated PostgreSQL cluster\nto explicit target time;
+:Verify all FOUR logical service databases\nand tenant/role policies;
+:Compare retained outboxes, inboxes,\ninvoices, receipts and ledger balances;
+:Plan controlled message replay;\nnever blindly attach stale queues;
+:Replay approved events;\nverify idempotent invoice/payment effects;
+:Revoke/rotate stale Identity refresh sessions;\nassess signing-key exposure;
+:Verify application readiness,\nstudent ownership and financial invariants;
+if (Business owner approves validation?) then (no)
+  :Keep restored environment isolated;\ninvestigate discrepancies;
+  stop
+endif
+:Re-enable traffic, then workers;\nmonitor queue depth and failures;
+:Record measured RPO / RTO,\nrecovery point, evidence and follow-up actions;
+stop
+legend bottom
+  TARGET: this complete workflow has NOT been run.
+  Existing drill: isolated single-table Postgres PITR only.
+  Historical drill RTO 21.8 s is not a production estimate.
+  pgBackRest, encrypted off-host archive and full reconciliation remain pending.
+endlegend
+@enduml

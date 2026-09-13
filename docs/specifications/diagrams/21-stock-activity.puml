@@ -1,0 +1,36 @@
+@startuml
+!include theme.puml
+title Asset movement | Aggregate stock invariant
+start
+:Authorize admin/super-admin;\napply tenant context;
+:SELECT asset FOR UPDATE;
+if (Asset exists?) then (no)
+  :404;
+  stop
+endif
+:assigned = SUM(quantity_delta)\nwhere employee_id IS NOT NULL;
+if (employee_id supplied?) then (yes)
+  :next_assigned = assigned + delta;
+  if (0 <= next_assigned <= total_quantity?) then (no)
+    :409 Excess return or insufficient stock;
+    stop
+  endif
+else (general stock)
+  :next_total = total_quantity + delta;
+  if (next_total >= 0 AND next_total >= assigned?) then (no)
+    :409 Invalid stock adjustment;
+    stop
+  endif
+  :Update asset.total_quantity;
+endif
+:INSERT AssetMovement\nasset, employee?, delta, reason;
+:COMMIT; release asset lock;
+stop
+note right
+Employee-linked positive delta = assign out.
+Employee-linked negative delta = return.
+Unlinked delta changes total stock.
+Current check is aggregate, not per employee.
+No asset-management frontend screen is implemented.
+end note
+@enduml

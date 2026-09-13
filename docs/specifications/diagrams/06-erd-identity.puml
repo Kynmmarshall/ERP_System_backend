@@ -1,0 +1,57 @@
+@startuml
+!include theme.puml
+title Identity database | Entity relationships
+entity "institutions" as institution {
+  * id : UUID <<PK>>
+  --
+  name
+  slug : unique
+}
+entity "campuses" as campus {
+  * id : UUID <<PK>>
+  * institution_id : UUID <<FK>>
+  --
+  name
+}
+entity "users" as user {
+  * id : UUID <<PK>>
+  institution_id : UUID <<FK, nullable>>
+  campus_id : UUID <<FK, nullable>>
+  --
+  email : unique
+  password_hash
+  full_name
+  role : enum
+  is_active
+  failed_login_attempts
+  locked_until
+}
+entity "refresh_sessions" as refresh {
+  * id : UUID <<PK>>
+  * user_id : UUID <<FK>>
+  institution_id : UUID <<FK, nullable>>
+  --
+  family_id : UUID
+  token_hash
+  expires_at
+  revoked_at
+}
+institution |o--o{ user : tenant
+institution ||--o{ campus : contains
+campus |o--o{ user : assigned campus
+user ||--o{ refresh : rotates sessions
+institution |o--o{ refresh : tenant
+note bottom of user
+Role: super_admin, admin, staff, student.
+Tenantless platform accounts are possible.
+RLS: users and refresh_sessions only.
+Institution/campus metadata has no RLS policy.
+External modules store user UUIDs without FK access.
+See generated dictionary for exact field types/defaults.
+end note
+legend bottom
+  PK = primary key; FK = database-enforced local foreign key
+  A nullable reference has a zero-or-one parent
+  Diagram is a selected-field view, not complete DDL
+endlegend
+@enduml

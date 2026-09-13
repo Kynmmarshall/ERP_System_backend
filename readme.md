@@ -102,3 +102,11 @@ lockout, Postgres row-level-security tenant isolation, a gateway
 Business modules (Academic, Finance & Marketing, HR) and the Jenkins
 deployment pipeline land in later phases — see `docs/` (added progressively)
 for the full plan, SRS and architecture record.
+
+## Requirements and design documents
+
+The detailed [LaTeX SRS and Software Design Document package](docs/specifications/README.md)
+covers this backend and the sibling `ERP_System` frontend, aligned with the
+SEN4121 assignment in `docs/`. It includes compiled PDFs, 21 editable PlantUML
+diagrams, requirement/test traceability, and an explicit distinction between
+implemented behavior, incomplete features and operational targets.

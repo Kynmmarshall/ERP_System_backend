@@ -1,0 +1,34 @@
+n  @startuml
+!include theme.puml
+title ICT University ERP | System context
+top to bottom direction
+actor "Student" as student
+actor "Instructor / staff\nHR employee" as staff
+actor "Institution / platform\nadministrator" as admin
+rectangle "ERP system boundary" {
+  rectangle "React 19 web application\nERP_System repository\nStudent + staff self-service" as ui
+  rectangle "ERP API platform\nERP_System_backend repository\nIdentity | Academic | Finance | HR" as erp
+  ui --> erp : Same-origin HTTPS / JSON\nBearer JWT + refresh cookie
+}
+cloud "Mobile-money provider\nMTN MoMo adapter OR\nexplicit simulated gateway" as payment
+actor "Operator / release approver" as ops
+rectangle "Jenkins + registry\nPipeline definitions present\nLive execution unverified" as ci
+database "Off-host backup repository\nTARGET: not provisioned" as backup #FFF5DE
+student --> ui : Enroll / grades / invoices
+staff --> ui : Leave / check-in / payslips
+admin --> erp : Administrative APIs\nUI screens mostly placeholders
+erp --> payment : request-to-pay\nquery authoritative status
+ops --> ci : Approve release
+ci --> erp : Pinned image deployment
+erp ..> backup : Planned encrypted backup + WAL
+note bottom of erp
+Institution = tenant; campus is not a separate tenant.
+No cross-service database queries.
+One local asynchronous workflow: enrollment -> invoice.
+end note
+legend bottom
+  Solid: implemented interaction or defined integration
+  Dotted / amber: target, not an operational claim
+  Provider callback ingress is not open in current gateway policy
+endlegend
+@enduml

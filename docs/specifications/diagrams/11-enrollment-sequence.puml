@@ -1,0 +1,66 @@
+@startuml
+!include theme.puml
+skinparam maxMessageSize 180
+title Enrollment -> invoice | Asynchronous transaction boundaries
+autonumber
+participant "Student UI\nvia gateway" as UI
+participant "Academic API" as A
+database academic_db as AD
+participant "Academic worker" as AW
+queue "RabbitMQ\nerp.events" as MQ
+participant "Finance consumer" as F
+database finance_db as FD
+queue "Finance DLQ" as DLQ
+participant "Finance API" as API
+UI -> A : POST enrollment
+A -> A : Verify caller / program / term / duplicate
+group Academic ACID transaction
+  A -> AD : INSERT accepted enrollment
+  A -> AD : INSERT outbox event + correlation_id
+  A -> AD : COMMIT both
+end
+A --> UI : 201 enrollment (invoice may not exist)
+loop Every 2 seconds; batch <= 20
+  AW -> AD : Lock unpublished rows\nFOR UPDATE SKIP LOCKED
+  AW -> MQ : Persistent message; routing key\nacademic.enrollment_accepted.v1
+  MQ --> AW : Publisher confirm
+  AW -> AD : Set published_at; COMMIT
+end
+note over AW,MQ
+Broker failure leaves row unpublished.
+Crash after confirmed publish but before DB commit can replay.
+This is at-least-once delivery, NOT exactly-once messaging.
+end note
+MQ -> F : Deliver durable queue message
+F -> F : Parse fields + UUIDs\n(no full runtime JSON Schema dispatch)
+group Finance local transaction
+  F -> FD : Platform context; INSERT inbox event_id
+  alt Duplicate event ID
+    FD --> F : Unique violation
+    F -> FD : ROLLBACK
+    F -> MQ : ACK duplicate
+  else New event ID
+    F -> FD : Find tenant/program/term fee
+    alt Fee missing
+      F -> FD : ROLLBACK inbox
+      F -> MQ : Reject(requeue=false)
+      MQ -> DLQ : Dead-letter for investigation
+    else Fee found
+      F -> FD : INSERT invoice; unique tenant/enrollment\nCOMMIT invoice + inbox
+      F -> MQ : ACK after commit
+    end
+  end
+end
+note over F,FD
+Duplicate enrollment under a different event ID is also ACKed
+after rollback on the invoice uniqueness path.
+Transient processing failure -> NACK(requeue=true).
+end note
+UI -> API : GET invoices?enrollment_id=...\nthrough gateway
+API -> FD : Tenant + student scoped lookup
+API --> UI : Empty list until available, then invoice
+note right of UI
+UI polls every 2 s for the newly created enrollment.
+Browser never connects directly to either database.
+end note
+@enduml

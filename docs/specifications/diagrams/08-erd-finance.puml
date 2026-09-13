@@ -1,0 +1,82 @@
+@startuml
+!include theme.puml
+title Finance database | Settlement, reporting and campaigns
+entity "fee_schedules" as fee {
+  * id : UUID <<PK>>
+  institution_id / program_id / term_id
+  amount_xaf : nonnegative integer
+  --
+  unique(institution, program, term)
+}
+entity "invoices" as inv {
+  * id : UUID <<PK>>
+  institution_id / enrollment_id / student_id
+  amount_xaf / status
+  --
+  unique(institution, enrollment)
+}
+entity "inbox_events" as inbox {
+  * event_id : UUID <<PK>>
+  event_type / processed_at
+}
+entity "payment_intents" as pi {
+  * id : UUID <<PK>>
+  invoice_id : <<FK>>
+  provider_reference : unique
+  amount_xaf / payer_msisdn / status
+  --
+  one pending/succeeded intent per invoice
+}
+entity "receipts" as receipt {
+  * id : UUID <<PK>>
+  invoice_id : UUID, unique (no FK)
+  payment_intent_id : UUID (no FK)
+  amount_xaf
+}
+entity "ledger_entries" as ledger {
+  * id : UUID <<PK>>
+  posting_id : UUID
+  institution_id
+  entry_type / direction / amount_xaf
+  reference_type / reference_id
+}
+entity "expenses" as expense {
+  * id : UUID <<PK>>
+  institution_id
+  category / amount_xaf / recorded_by
+}
+entity "campaigns" as campaign {
+  * id : UUID <<PK>>
+  institution_id / name
+  cost_xaf / starts_on / ends_on
+}
+entity "leads" as lead {
+  * id : UUID <<PK>>
+  campaign_id : <<FK>>
+  student_id : opaque UUID, nullable
+  status : new | converted
+}
+entity "financial_summaries" as summary {
+  * id : UUID <<PK>>
+  institution_id / period / version
+  total_revenue_xaf / total_expenses_xaf / net_xaf
+  --
+  unique(institution, period, version)
+}
+inv ||--o{ pi
+inv ..> receipt : one receipt per invoice\nlogical, no FK
+pi ..> receipt : logical intent reference
+campaign ||--o{ lead
+fee ..> inv : consumer lookup\nNOT a foreign key
+inbox ..> inv : same transaction\nNOT a foreign key
+pi ..> ledger : balanced posting\npolymorphic reference
+expense ..> ledger : balanced posting\npolymorphic reference
+ledger ..> summary : monthly aggregation
+lead ..> inv : student attribution join\nNOT a foreign key
+note bottom of ledger
+No separate ledger-transaction entity:
+posting_id groups debit/credit rows.
+Dashed links show logical derivation, not database FKs.
+Inbox is cross-tenant internal idempotency plumbing.
+end note
+@enduml
