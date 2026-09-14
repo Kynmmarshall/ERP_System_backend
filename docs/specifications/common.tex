@@ -22,7 +22,7 @@
 \definecolor{slate}{HTML}{46586B}
 \definecolor{amber}{HTML}{9A5700}
 \hypersetup{colorlinks=true,linkcolor=navy,urlcolor=teal,
-  pdfauthor={ICT University ERP project team; AI-assisted draft},
+  pdfauthor={ICT University ERP project group},
   pdflang={en},bookmarksnumbered=true}
 \urlstyle{tt}
 \AtBeginShipout{\AtBeginShipoutAddToBox{\special{papersize=\the\paperwidth,\the\paperheight}}}
@@ -40,7 +40,7 @@
 \pagestyle{fancy}
 \fancyhf{}
 \fancyhead[L]{\small\color{slate}ICT UNIVERSITY \quad / \quad ERP}
-\fancyhead[R]{\small\color{slate}\DocCode\ \textbar\ v1.0}
+\fancyhead[R]{\small\color{slate}\DocCode\ \textbar\ v1.1}
 \fancyfoot[L]{\footnotesize\color{slate}SEN4121 \quad Summer 2026 \quad Review draft}
 \fancyfoot[R]{\small\thepage}
 \renewcommand{\headrulewidth}{0.5pt}
@@ -57,25 +57,35 @@
 \newcommand{\cover}[2]{
   \hypersetup{pageanchor=false}
   \begin{titlepage}
-  \vspace*{8mm}
-  {\color{teal}\rule{\textwidth}{3pt}}\par\vspace{8mm}
+  \vspace*{4mm}
+  {\color{teal}\rule{\textwidth}{3pt}}\par\vspace{6mm}
   {\Large\bfseries\color{navy}ICT UNIVERSITY}\par
   {\large Faculty of Information and Communication Technologies}\par
-  \vspace{18mm}
+  \vspace{10mm}
   {\Huge\bfseries\color{navy}#1\par}
   \vspace{6mm}{\Large\color{teal}Multi-tenant University ERP\par}
   \vspace{4mm}{\large Academic \textbullet\ Marketing \& Finance\par
   Administration \& Human Resources}\par
-  \vspace{15mm}
+  \vspace{8mm}
   \begin{tabularx}{\textwidth}{@{}L{40mm}Y@{}}
   \toprule
   Document identifier & \DocCode\\
-  Version / status & 1.0 / Evidence-grounded review draft\\
+  Version / status & 1.1 / Group review draft\\
   Baseline & Backend \texttt{6e10c54}; frontend \texttt{6cc6859}; reviewed 13 September 2026\\
   Course & SEN4121 -- Large System Environment, Summer 2026\\
   Instructor & Engr.\ Tanwi Nkiamboh\\
   Scope & React frontend and four-service backend, with deployment and integration boundaries\\
-  Prepared with & AI assistance using Copilot SDK in VS Code; team review and approval pending\\
+  Prepared by & Four-member Software Engineering project group\\
+  \bottomrule
+  \end{tabularx}
+  \vspace{4mm}
+  {\normalsize\bfseries\color{navy}Group members}\par
+  \begin{tabularx}{\textwidth}{@{}L{10mm}Y L{42mm}@{}}
+  \toprule No. & Full name & Student / registration ID\\\midrule
+  \rule{0pt}{7mm}1 & \hrulefill & \hrulefill\\
+  \rule{0pt}{7mm}2 & \hrulefill & \hrulefill\\
+  \rule{0pt}{7mm}3 & \hrulefill & \hrulefill\\
+  \rule{0pt}{7mm}4 & \hrulefill & \hrulefill\\
   \bottomrule
   \end{tabularx}
   \vfill
@@ -94,15 +104,16 @@
   \begin{tabularx}{\textwidth}{@{}L{29mm}L{33mm}Y@{}}
   \toprule Version & Date & Change\\\midrule
   1.0 & 13 September 2026 & Initial code-grounded specification with editable PlantUML sources and local PDF build.\\
+  1.1 & 13 September 2026 & Assignment alignment, four-member submission forms and clarified UML execution/relationship notation.\\
   \bottomrule
   \end{tabularx}
   \subsection*{Review and approval}
   \begin{tabularx}{\textwidth}{@{}L{44mm}Y L{27mm}@{}}
   \toprule Responsibility & Name / signature & Date\\\midrule
-  Product / academic representative & Pending team nomination & Pending\\
-  Finance and payroll representative & Pending team nomination & Pending\\
-  Technical lead / document reviewer & Pending team nomination & Pending\\
-  Course submission approval & Pending group review & Pending\\
+  Product / academic representative & \hrulefill & \hrulefill\\
+  Finance and payroll representative & \hrulefill & \hrulefill\\
+  Technical lead / document reviewer & \hrulefill & \hrulefill\\
+  Course submission approval & \hrulefill & \hrulefill\\
   \bottomrule
   \end{tabularx}
   \subsection*{Authority and interpretation}
@@ -111,12 +122,13 @@
   Existing operational reports are historical evidence, not rerun results.
   The ISO/IEC/IEEE 29148 reference is used as an organizational alignment for
   requirements; no conformance assessment or reproduction of that standard is claimed.
-  \subsection*{Academic integrity disclosure}
-  This specification and its diagrams were generated with AI assistance from the
-  project brief and repository evidence. Group members must review, correct and
-  understand the material, disclose this assistance at the defense, and provide
-  their own signed originality declaration and individual contribution statements.
-  No names, signatures, approvals, measurements or contributions have been invented.
+  \subsection*{Group submission responsibilities}
+  All four members must review and understand both documents. Complete the
+  individual contribution statements, obtain all four signatures on each, and
+  sign the submission declaration supplied in the technical-report appendices.
+  The report's source acknowledgments form part of the submission and defense.
+  Blank names, signatures and evidence fields must be completed by the group;
+  this review draft records no approval or individual contribution.
   \subsection*{Pagination policy}
   #1 Main narrative pages are deliberately bounded; extensive requirements,
   interface inventories and diagrams are appendices. The brief limits the
@@ -134,6 +146,7 @@
   \ifstrequal{#1}{wide}{\def\sheetwidth{420mm}\def\sheetheight{297mm}}{}
   \ifstrequal{#1}{large}{\def\sheetwidth{420mm}\def\sheetheight{594mm}}{}
   \ifstrequal{#1}{large-wide}{\def\sheetwidth{594mm}\def\sheetheight{420mm}}{}
+  \ifstrequal{#1}{tall}{\def\sheetwidth{594mm}\def\sheetheight{841mm}}{}
   \newgeometry{layoutwidth=\sheetwidth,layoutheight=\sheetheight,margin=18mm}
   \setlength{\paperwidth}{\sheetwidth}
   \setlength{\paperheight}{\sheetheight}

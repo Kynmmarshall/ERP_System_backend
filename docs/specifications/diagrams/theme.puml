@@ -30,6 +30,7 @@ skinparam databaseBorderColor #3D6E97
 skinparam sequenceParticipantBackgroundColor #EEF5F7
 skinparam sequenceParticipantBorderColor #007F86
 skinparam sequenceLifeLineBorderColor #9AAEBE
+skinparam sequenceLifeLineBackgroundColor #CDEAE7
 skinparam sequenceGroupBackgroundColor #F7FAFC
 skinparam sequenceGroupBorderColor #9AAEBE
 skinparam activityBackgroundColor #EEF5F7

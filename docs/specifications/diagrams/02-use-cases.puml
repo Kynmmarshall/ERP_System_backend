@@ -10,8 +10,11 @@ actor "Payment provider" as P
 rectangle "ERP: web screens + business APIs" {
   usecase "Authenticate /\nrotate session" as login
   usecase "Enroll + view\nasynchronous invoice" as enroll
-  usecase "Register offering /\ncheck prerequisites" as register
-  usecase "View grades /\nappeal / PDF reports" as grades
+  usecase "Register for\na course offering" as register
+  usecase "Check published\nprerequisite results" as prerequisites
+  usecase "View published grades" as grades
+  usecase "Submit a grade appeal" as appeal
+  usecase "Download transcript /\nattendance summary PDF" as reports
   usecase "Pay tuition /\ndownload receipt" as pay
   usecase "Manage teaching,\nexams and appeals\n(API-only staff UI gap)" as teaching
   usecase "Fees / expenses /\ncampaigns / summaries\n(API-only staff UI gap)" as finance
@@ -27,6 +30,7 @@ SA --> login
 S --> enroll
 S --> register
 S --> grades
+S --> reports
 S --> pay
 T --> teaching
 T --> finance
@@ -37,16 +41,19 @@ A --> hr
 SA --> hr
 SA --> attest
 pay ..> status : <<include>>
+register ..> prerequisites : <<include>>
+appeal .left.> grades : <<extend>>\n[student disputes a published grade]
 P --> status
-note bottom of teaching
-Staff teaching actions require assigned offering.
-Admin and super-admin may manage offerings.
-UI route guard authenticates; page-level checks
-show student/staff content or explicit placeholders.
-end note
-note bottom of attest
-Attestation is manual, not automated tax validation.
-Tenant context is required for ordinary mutations.
-Actors describe permissions, not implemented admin screens.
-end note
+legend bottom
+  Actor -- use case: participation / association
+  <<include>>: required behavior; arrow points to the included use case
+  <<extend>>: optional behavior; arrow points to the base use case
+  Viewing grades does not require an appeal; registration checks prerequisites.
+  ----
+  Staff teaching actions require an assigned offering.
+  Admin and super-admin may manage offerings; admin UI screens remain partial.
+  The UI route guard authenticates; page-level checks select content or placeholders.
+  Payroll attestation is manual, not automated tax validation.
+  Tenant context is required for ordinary mutations.
+endlegend
 @enduml

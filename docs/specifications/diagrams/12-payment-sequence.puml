@@ -4,53 +4,126 @@ title Tuition payment | Durable intent and atomic settlement
 autonumber
 participant "Student UI\nvia gateway" as UI
 participant "Finance API" as API
-database finance_db as DB
-participant "Provider adapter" as PSP
 participant "Finance worker" as W
 participant "reconcile_intent\nshared function" as R
-UI -> API : POST invoice/{id}/payment-intents
+database finance_db as DB
+participant "Provider adapter" as PSP
+activate UI
+UI -> API : POST invoices/{id}/payment-intents
+activate API
+API -> DB : Read tenant invoice
+activate DB
+DB --> API : Invoice record
+deactivate DB
 API -> API : Check ownership + pending invoice
 group Commit before external I/O
   API -> DB : INSERT intent + unique reference\npartial unique active-intent constraint
+  activate DB
   API -> DB : COMMIT
+  DB --> API : Durable pending intent
+  deactivate DB
 end
 API -> PSP : request_to_pay(reference, amount, mobile)
+activate PSP
 alt Request accepted
   PSP --> API : Accepted / no settlement assertion
 else Exception or timeout
+  PSP --> API : Exception / timeout
+end
+deactivate PSP
+opt Provider request failed
   API -> API : Log failure; keep intent pending
 end
 API --> UI : 201 intent (pending)
-loop UI polls 1.5 s while pending; worker polls every 3 s
-  alt Worker invocation
+deactivate API
+deactivate UI
+loop Worker tick every 3 seconds (independent of browser polling)
+  activate W
+  W -> DB : Platform session; list pending intent IDs
+  activate DB
+  DB --> W : Pending IDs
+  deactivate DB
+  loop Each pending ID in its own session
     W -> R : reconcile_intent(session, gateway, id)
-  else UI status request
-    UI -> API : GET payment-intents/{id}
-    API -> R : reconcile_intent(session, gateway, id)
-  end
-  R -> DB : SELECT intent FOR UPDATE
-  alt Terminal intent
-    R -> R : Return stored state; no duplicate posting
-  else Pending intent
-    R -> PSP : get_status(reference)
-    alt Provider PENDING
-      R -> R : Remain pending
-    else Provider FAILED
-      R -> DB : Set intent failed; COMMIT
-    else Provider SUCCESSFUL
-      R -> DB : SELECT invoice FOR UPDATE
-      group One ACID commit
-        R -> DB : Set intent succeeded + invoice paid
-        R -> DB : INSERT cash debit + revenue credit\nsame posting_id; equal totals
-        R -> DB : INSERT receipt (unique invoice_id)
-        R -> DB : COMMIT all settlement changes
+    activate R
+    group Shared reconciliation body
+      R -> DB : SELECT intent FOR UPDATE
+      activate DB
+      DB --> R : Locked intent or no match
+      deactivate DB
+      alt Missing or terminal intent
+        R -> R : Use None / stored status; no duplicate posting
+      else Pending intent
+        R -> PSP : get_status(reference, requested_at, mobile)
+        activate PSP
+        PSP --> R : PENDING / FAILED / SUCCESSFUL
+        deactivate PSP
+        alt Provider PENDING
+          R -> R : Keep intent pending
+        else Provider FAILED
+          R -> DB : Set intent failed; COMMIT
+          activate DB
+          DB --> R : Failed state committed
+          deactivate DB
+        else Provider SUCCESSFUL
+          R -> DB : SELECT invoice FOR UPDATE
+          activate DB
+          DB --> R : Locked invoice
+          deactivate DB
+          group One ACID commit
+            R -> DB : Set intent succeeded; if invoice unpaid:\nmark paid + balanced ledger + unique receipt;\nCOMMIT all settlement changes
+            activate DB
+            DB --> R : Settlement committed
+            deactivate DB
+          end
+        end
       end
     end
+    R --> W : None / pending / failed / succeeded
+    deactivate R
+    W -> DB : Close per-intent session;\nroll back any remaining read transaction
+    activate DB
+    DB --> W : Remaining locks released
+    deactivate DB
   end
+  deactivate W
 end
+loop Browser polls every 1.5 seconds while pending
+  activate UI
+  UI -> API : GET payment-intents/{id}
+  activate API
+  API -> DB : Read tenant intent + invoice; check ownership
+  activate DB
+  DB --> API : Owned intent and invoice
+  deactivate DB
+  opt Intent is still pending
+    API -> R : reconcile_intent(session, gateway, id)
+    activate R
+    ref over R,PSP : Shared reconciliation body above (same row locks / atomic settlement)
+    R --> API : Current status; identity-mapped intent updated
+    deactivate R
+  end
+  API --> UI : 200 current payment intent
+  deactivate API
+  deactivate UI
+end
+activate UI
 UI -> API : GET owned invoice receipt
+activate API
+API -> DB : Tenant + owner scoped invoice/receipt lookup
+activate DB
+DB --> API : Issued receipt for settled invoice
+deactivate DB
+API -> API : Render receipt PDF
 API --> UI : application/pdf
+deactivate API
+deactivate UI
 note over API,PSP
+Bars show request, helper and query execution; dashed arrows are returns.
+Worker and browser loops may overlap; they use the same locking helper.
+Database locks survive individual query bars until transaction/session end.
+Balanced settlement = cash debit + revenue credit, same posting_id and equal totals.
+An already-paid invoice does not receive a second posting or receipt.
 Callback body is only a reference hint; provider status is authoritative.
 Current gateway blocks unauthenticated callback ingress.
 Poller queries status; it does not resubmit a lost MTN request.

@@ -76,8 +76,8 @@ Reconcile ..> Invoice : locks / settles
 Reconcile ..> Receipt : creates
 Reconcile ..> Ledger : posts on success
 Ledger ..> LedgerLine : balances
-Invoice "1" -- "0..*" PaymentIntent
-Invoice "1" -- "0..1" Receipt
+Invoice "1" -- "0..*" PaymentIntent : invoice_id association
+Invoice "1" -- "0..1" Receipt : logical invoice link
 Payroll ..> ScheduleRates : reads
 Payroll ..> PayslipBreakdown : returns
 note bottom of Payroll
@@ -85,4 +85,15 @@ Class diagram uses real ORM/dataclass/protocol concepts.
 Module boxes are functions, not invented service classes.
 Payroll has no call to Finance and does not transfer funds.
 end note
+note right of Receipt
+Receipt identifiers are logical references, not SQL foreign keys.
+Multiplicity describes the unique-per-invoice business rule.
+end note
+legend bottom
+  Solid line + multiplicities: association
+  Dashed arrow: dependency (uses, creates or returns)
+  Dashed line + hollow triangle: realization of PaymentGateway
+  Python adapters satisfy the protocol structurally; no runtime inheritance is implied.
+  No aggregation/composition is asserted without a matching ownership lifecycle.
+endlegend
 @enduml

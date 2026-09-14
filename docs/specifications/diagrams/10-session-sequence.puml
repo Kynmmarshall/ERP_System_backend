@@ -8,40 +8,116 @@ participant "Nginx gateway" as GW
 participant "Identity API" as ID
 database identity_db as DB
 participant "Domain API" as API
+group Login
 User -> UI : Submit email/password
+activate UI
 UI -> GW : POST /api/v1/auth/login
+activate GW
 GW -> ID : Public login; 5/min IP budget
+activate ID
 ID -> DB : Platform credential lookup
+activate DB
+DB --> ID : User record or no match
+deactivate DB
 ID -> ID : Active + lockout + Argon2 checks
 alt Valid credentials
   ID -> DB : Reset failures; INSERT refresh hash + family\nCOMMIT
-  ID --> UI : Access JWT + HttpOnly refresh cookie
-  UI -> UI : Store access JWT in memory; fetch principal
-else Bad password
+  activate DB
+  DB --> ID : Committed
+  deactivate DB
+  ID --> GW : 200 access JWT + HttpOnly refresh cookie
+else Bad password for an active, unlocked account
   ID -> DB : Increment failures; lock after threshold\nCOMMIT
-  ID --> UI : 401 (lockout: default 15 minutes)
+  activate DB
+  DB --> ID : Committed (lockout: default 15 minutes)
+  deactivate DB
+  ID --> GW : 401 Invalid credentials
+else Missing / inactive / locked account
+  ID --> GW : 401 Invalid credentials or temporary lockout
 end
+deactivate ID
+GW --> UI : Forward login status, body and issued cookie
+deactivate GW
+opt Successful login
+  UI -> UI : Store access JWT in memory;\nschedule principal lookup through gateway
+end
+UI --> User : Render authenticated screen or login error
+deactivate UI
+end
+group Protected domain request
+activate UI
 UI -> GW : Protected request + bearer JWT
+activate GW
 GW -> ID : Internal auth_request /internal/verify
+activate ID
 ID --> GW : Verified user/tenant headers or 401
-GW -> API : Authorized request + original bearer token
-API -> API : Independently verify RS256 / issuer /\naudience / expiry; set tenant DB context
-API --> UI : Domain response
+deactivate ID
+alt Gateway verification succeeds
+  GW -> API : Authorized request + original bearer token
+  activate API
+  API -> API : Independently verify RS256 / issuer /\naudience / expiry; set tenant DB context
+  API --> GW : Domain response or service authorization error
+  deactivate API
+  GW --> UI : Forward service response
+else Gateway verification fails
+  GW --> UI : 401; do not dispatch to domain API
+end
+deactivate GW
+deactivate UI
+end
 group Refresh after a resource response is 401
+  activate UI
   UI -> GW : POST /api/v1/auth/refresh + cookie\nsingle in-flight promise per JS runtime
+  activate GW
   GW -> ID : Public refresh route
+  activate ID
   ID -> DB : Read stored token hash
+  activate DB
+  DB --> ID : Refresh session or no match
+  deactivate DB
   alt Active unexpired refresh token
+    ID -> DB : Read linked user
+    activate DB
+    DB --> ID : User / active status
+    deactivate DB
+    alt Active user
     ID -> DB : Revoke old row; INSERT successor\nsame family; COMMIT
-    ID --> UI : New access token + replacement cookie
-    UI -> GW : Retry original request ONCE
+    activate DB
+    DB --> ID : Rotation committed
+    deactivate DB
+    ID --> GW : 200 new access token + replacement cookie
+    else Account unavailable
+      ID --> GW : 401 Account unavailable
+    end
   else Reused revoked token
     ID -> DB : Revoke active rows in family; COMMIT
-    ID --> UI : 401
+    activate DB
+    DB --> ID : Family revocation committed
+    deactivate DB
+    ID --> GW : 401 Session revoked
+  else Unknown / expired refresh token
+    ID --> GW : 401 Invalid or expired refresh session
+  end
+  deactivate ID
+  GW --> UI : Forward refresh status, body and cookie headers
+  deactivate GW
+  alt Refresh succeeded
+    UI -> UI : Replace in-memory access JWT
+    UI -> GW : Retry original request ONCE
+    activate GW
+    ref over GW,API : Protected-request verification and dispatch above
+    GW --> UI : Retried response
+    deactivate GW
+  else Refresh rejected
     UI -> UI : Session-expired callback;\nProtectedRoute redirects to /login
   end
+  deactivate UI
 end
 note over UI,API
+Bars show execution/waiting scopes; dashed arrows return to the caller.
+The gateway relays responses; backend APIs do not bypass it.
+Principal lookup is routed to Identity, not to a domain service.
+A missing refresh cookie is rejected before the token lookup.
 Logout revokes the presented refresh row, not every issued access JWT.
 Multi-tab refresh coordination is not provided by the single-runtime promise.
 Secure-cookie production configuration remains a release gate.
