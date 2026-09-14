@@ -17,7 +17,7 @@
       "main_narrative_pages": 6,
       "front_matter_pages": 3,
       "embedded_diagram_sheets": 2,
-      "sha256": "51bdc03907c18468b83b5b245e0d126d432fa6b0daef02d17119c4e6c9808a48"
+      "sha256": "5f0c8ca07c307dfd30e632c9763dc181d64e371f48e9e56b8e464d3649eb8ae9"
     },
     "sdd.pdf": {
       "physical_pages": 57,
@@ -25,7 +25,7 @@
       "main_narrative_pages": 8,
       "front_matter_pages": 3,
       "embedded_diagram_sheets": 21,
-      "sha256": "f89b90d7d51958eca07be86c430396a50f7ebe4b34c5872ddc3cd231a89eda89"
+      "sha256": "456d7e592bcac6be2e0374acbe9126473aef735412247c04575a1212e45dcfc2"
     }
   },
   "checks": {
@@ -52,6 +52,7 @@
     "Historical performance and recovery measurements are not new runs.",
     "Tectonic emitted a host fontconfig configuration notice; compilation succeeded with no missing-character or overflow diagnostics.",
     "The pre-existing user edit to docs/performance.md and the frontend source tree were not modified.",
+    "The latest rebuild regenerated all 21 PNG/SVG pairs and rechecked PDF pagination, page bounds, bookmarks and hashes.",
     "This report identifies the verified PDF hashes; regenerate verification after rebuilding or editing."
   ]
 }

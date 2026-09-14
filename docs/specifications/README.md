@@ -88,6 +88,8 @@ The build:
    `generated/models.tex`; it does not import services or inspect secrets.
 2. Locally renders every diagram to PNG and SVG using the bundled Smetana layout
    engine; no external Graphviz installation or public rendering server is required.
+   Each render replaces its previous output; missing or empty output fails the build
+   rather than silently reusing a stale diagram.
 3. Compiles both PDFs and rejects compiler errors, unresolved references and overfull boxes.
 
 Tectonic may download its typesetting bundle on first use. Diagram and document

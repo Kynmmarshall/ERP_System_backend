@@ -1,4 +1,4 @@
-n  @startuml
+@startuml
 !include theme.puml
 title ICT University ERP | System context
 top to bottom direction

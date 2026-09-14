@@ -27,9 +27,17 @@ try {
         Where-Object { $_.Name -ne "theme.puml" } | Sort-Object Name)
     foreach ($format in @("png", "svg")) {
         foreach ($diagram in $diagrams) {
+            $renderPath = Join-Path "diagrams\rendered" "$($diagram.BaseName).$format"
+            if (Test-Path -LiteralPath $renderPath) {
+                Remove-Item -LiteralPath $renderPath
+            }
             & $Java "-DPLANTUML_LIMIT_SIZE=16384" "-Djava.awt.headless=true" `
                 -jar $PlantUmlJar "-t$format" -charset UTF-8 -failfast2 -o rendered $diagram.FullName
             if ($LASTEXITCODE -ne 0) { throw "PlantUML failed: $($diagram.Name) ($format)." }
+            if (-not (Test-Path -LiteralPath $renderPath -PathType Leaf) -or
+                (Get-Item -LiteralPath $renderPath).Length -eq 0) {
+                throw "PlantUML produced no output: $($diagram.Name) ($format)."
+            }
         }
     }
     foreach ($document in @("srs", "sdd")) {
