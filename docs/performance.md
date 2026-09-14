@@ -62,3 +62,4 @@ k6 run --env BASE_URL=http://localhost:8081 `
   --env SMOKE_VUS=25 --env SMOKE_DURATION=90s `
   tests/load/k6-smoke.js
 ```
+ ++                                                                                                                                                                                                                                                                                                                                                                  

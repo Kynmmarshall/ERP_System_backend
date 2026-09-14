@@ -1,0 +1,45 @@
+@startuml
+!include theme.puml
+title Web application | Component and data-flow design
+top to bottom direction
+component "main.tsx\nStrictMode + QueryClientProvider\nretry=1; no focus refetch" as main
+component "App / AuthProvider\nstatus + principal\nrestore / login / logout" as auth
+component "Browser router\n/login public\n/ protected AppShell" as router
+component "AppShell\nResponsive navigation / Outlet\nidentity summary / desktop logout" as shell
+package "Feature screens" {
+  component "Academic: student only\nEnrollmentPage -> CoursesPanel\n-> CourseGrades / appeal form" as acad
+  component "Finance: student only\nFinancePage -> InvoiceRow\n-> PayForm / receipt download" as fin
+  component "People: staff only\nLeave / Attendance /\nPayslips / Notifications" as hr
+  component "Overview: welcome only\nSettings: placeholder\nStatus: real liveness cards" as misc
+}
+component "Domain service adapters\nsnake_case JSON -> camelCase types\nacademicService / financeService / hrService" as adapters
+component "apiClient\nauthFetch / authFetchJson\none 401 refresh + one retry\nApiError(status, body)" as client
+component "tokenStore\nAccess token in memory only" as token
+cloud "Same-origin gateway\nHttpOnly refresh cookie handled by browser" as gateway
+main --> auth
+auth --> router
+router --> shell
+shell --> acad
+shell --> fin
+shell --> hr
+shell --> misc
+acad --> adapters
+fin --> adapters
+hr --> adapters
+adapters --> client
+auth --> client : restore / expiry callback
+client <--> token
+client --> gateway : credentials=include
+note right of auth
+ProtectedRoute checks authentication,
+not module role permissions.
+Page components gate rendered content.
+Query cache keys are not principal-scoped;
+cross-account cache clearing is a review target.
+end note
+note bottom of adapters
+HTTP type assertions are not runtime response validation.
+Zod validates login and enrollment forms.
+Admin/instructor workflow screens remain placeholders.
+end note
+@enduml

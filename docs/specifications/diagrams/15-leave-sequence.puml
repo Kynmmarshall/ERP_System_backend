@@ -1,0 +1,77 @@
+@startuml
+!include theme.puml
+title Leave | Self-service request, segregated decision and notification
+autonumber
+actor "Employee\nstaff UI" as E
+participant "HR API" as HR
+database hr_db as DB
+actor "HR approver\nadmin/super-admin API" as A
+E -> HR : POST leave/requests + bearer token
+activate HR
+HR -> DB : Find employee by verified user_id
+activate DB
+DB --> HR : Linked employee profile
+deactivate DB
+HR -> HR : Validate end >= start
+HR -> DB : INSERT pending LeaveRequest; COMMIT
+activate DB
+DB --> HR : Pending request committed
+deactivate DB
+HR --> E : 201 pending request
+deactivate HR
+A -> HR : POST leave/requests/{id}/decision
+activate HR
+HR -> DB : Fetch tenant request + employee
+activate DB
+DB --> HR : Request status and linked employee
+deactivate DB
+alt Not pending
+  HR --> A : 409 Already decided
+else Approver is the request employee
+  HR --> A : 403 No self-approval
+else Authorized different approver
+  group One transaction
+    HR -> DB : Set approved/rejected + actor/time
+    activate DB
+    DB --> HR : Decision staged
+    deactivate DB
+    opt Employee has linked identity user
+      HR -> DB : INSERT Notification(user_id, message)
+      activate DB
+      DB --> HR : Notification staged
+      deactivate DB
+    end
+    HR -> DB : COMMIT
+    activate DB
+    DB --> HR : Decision and any notification committed
+    deactivate DB
+  end
+  HR --> A : Decision response
+end
+deactivate HR
+E -> HR : GET notifications/mine
+activate HR
+HR -> DB : Query notifications for verified user_id
+activate DB
+DB --> HR : Owned notifications, newest first
+deactivate DB
+HR --> E : User-scoped in-app records
+deactivate HR
+E -> HR : POST notifications/{id}/read
+activate HR
+HR -> DB : Check ownership; set read_at once; COMMIT
+activate DB
+DB --> HR : Owned notification with read timestamp
+deactivate DB
+HR --> E : Updated notification
+deactivate HR
+note over E,A
+Bars indicate request/query execution, not asynchronous push delivery.
+Dashed responses return control to the initiating caller.
+The normal linked-profile path is shown; missing records yield 404.
+Employee UI exists; decision UI does not.
+Notifications are fetched, not email/SMS/push messages.
+No timer-driven notification polling is configured in the current UI.
+Concurrent decision serialization is a separate acceptance test.
+end note
+@enduml

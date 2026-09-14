@@ -1,0 +1,57 @@
+@startuml
+!include theme.puml
+title Deployment | Compose baseline and production intentions
+top to bottom direction
+node "User device" {
+  artifact "Browser\nReact SPA" as browser
+}
+node "Single deployment host\nLocal stack OR intended Linux VPS" {
+  node "Host Nginx + TLS\nProduction prerequisite, outside repo" as tls #FFF5DE
+  node "Compose bridge network: erp_internal" {
+    node "gateway\nNginx :80" as gw
+    node "frontend\nNginx :80\nReact dist/" as front
+    node "identity\nFastAPI :8000" as id
+    node "academic\nFastAPI :8000" as ac
+    node "finance\nFastAPI :8000" as fi
+    node "hr\nFastAPI :8000" as hr
+    node "academic-worker\nsame academic image" as aw
+    node "finance-worker\nconsumer + payment + summary tasks" as fw
+    database "postgres:17-alpine\nidentity_db | academic_db\nfinance_db | hr_db" as pg
+    queue "rabbitmq:3.13-management-alpine\nAMQP :5672\nmanagement :15672" as mq
+    artifact "pg_data\npersistent volume" as pv
+    artifact "rabbitmq_data\npersistent volume" as rv
+  }
+  artifact "JWT PEM files\nread-only mounts\nprivate: Identity only" as keys
+  artifact "Cron health script\nservice/queue/disk/memory checks" as monitor
+}
+browser --> gw : Local :8081 HTTP
+browser ..> tls : Intended production HTTPS :443
+tls ..> gw : Intended loopback :8081
+gw --> front : / and static assets
+gw --> id : /auth + internal verify
+gw --> ac : /academic
+gw --> fi : /finance
+gw --> hr : /hr
+id --> pg : identity_app / identity_db
+ac --> pg : academic_app / academic_db
+aw --> pg : academic_db outbox
+fi --> pg : finance_app / finance_db
+fw --> pg : finance_db
+hr --> pg : hr_app / hr_db
+aw --> mq : Publish
+mq --> fw : Consume
+pg -- pv
+mq -- rv
+keys ..> id
+keys ..> ac
+keys ..> fi
+keys ..> hr
+monitor ..> gw : HTTP liveness
+monitor ..> mq : loopback management API
+note bottom of gw
+Production override intentions are NOT verified effective configuration.
+Base environment=development and cookie=false are inherited.
+Port merge semantics also require explicit validation.
+No Kubernetes, DB replication or broker cluster is implemented.
+end note
+@enduml

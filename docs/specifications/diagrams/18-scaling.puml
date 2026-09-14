@@ -1,0 +1,43 @@
+@startuml
+!include theme.puml
+title Capacity evolution | Conceptual scaling, not deployed HA
+top to bottom direction
+rectangle "TARGET API replica group" #FFF5DE {
+  component "Gateway / upstream balancing\nexplicit configuration required" as g
+  component "Academic API replicas" as a
+  component "Finance API replicas" as f
+  component "HR API replicas" as h
+  component "Identity API replicas\nshared key material + DB sessions" as i
+}
+database "Current shared PostgreSQL cluster\nfour service-owned databases\nconnection / CPU / I/O bottleneck" as db
+queue "Current single RabbitMQ broker\nbroker availability bottleneck" as mq
+rectangle "Worker scaling candidates" #FFF5DE {
+  component "Outbox publisher replicas\nSKIP LOCKED batch selection" as w
+  component "Finance consumers\nprefetch 10 + business idempotency" as c
+}
+g --> a
+g --> f
+g --> h
+g --> i
+a --> db
+f --> db
+h --> db
+i --> db
+w --> db
+w --> mq
+mq --> c
+c --> db
+note right of db
+Measure before scaling:
+ - p95 latency and request throughput
+ - open DB connections / NullPool overhead
+ - lock contention and report query plans
+ - database storage and backup headroom
+end note
+note bottom of c
+Replicas are NOT enabled by this diagram.
+Review summary version races, payment polling scans,
+refresh concurrency and rollout migration compatibility.
+Single-host process replication does not provide host-failure HA.
+end note
+@enduml

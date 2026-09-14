@@ -1,0 +1,9 @@
+generated/
+output/*.aux
+output/*.log
+output/*.out
+output/*.toc
+output/*.lof
+output/*.lot
+output/*.synctex.gz
+__pycache__/

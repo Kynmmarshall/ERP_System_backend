@@ -1,0 +1,89 @@
+@startuml
+!include theme.puml
+title HR database | People, payroll and operational records
+entity "positions" as pos {
+  * id : UUID <<PK>>
+  title / department / status
+}
+entity "candidates" as candidate {
+  * id : UUID <<PK>>
+  position_id : <<FK>>
+  full_name / email / stage
+}
+entity "employees" as emp {
+  * id : UUID <<PK>>
+  candidate_id : <<FK, nullable>>
+  user_id : opaque UUID, nullable
+  gross_monthly_salary_xaf / status
+}
+entity "attendance_shifts" as shift {
+  * id : UUID <<PK>>
+  employee_id : <<FK>>
+  starts_at / ends_at / qr_token_jti
+}
+entity "attendance_records" as attendance {
+  * id : UUID <<PK>>
+  shift_id : <<FK>>
+  employee_id / checked_in_at
+}
+entity "leave_requests" as leave {
+  * id : UUID <<PK>>
+  employee_id : <<FK>>
+  starts_on / ends_on / status
+  decided_by / decided_at
+}
+entity "notifications" as notification {
+  * id : UUID <<PK>>
+  user_id : opaque UUID
+  message / read_at
+}
+entity "performance_reviews" as review {
+  * id : UUID <<PK>>
+  employee_id : <<FK>>
+  reviewer_id / period / rating / comments
+}
+entity "payroll_schedule_versions" as schedule {
+  * id : UUID <<PK>>
+  effective_from / is_verified
+  CNPS rates / ceiling / deduction / brackets
+}
+entity "payroll_runs" as run {
+  * id : UUID <<PK>>
+  schedule_version_id : <<FK>>
+  period / status / approved_by / approved_at
+}
+entity "payslips" as slip {
+  * id : UUID <<PK>>
+  run_id : <<FK>>
+  employee_id : UUID (no FK)
+  gross / CNPS / taxable / IRPP / net
+}
+entity "assets" as asset {
+  * id : UUID <<PK>>
+  name / category / total_quantity
+}
+entity "asset_movements" as movement {
+  * id : UUID <<PK>>
+  asset_id : <<FK>>
+  employee_id : UUID, nullable (no FK)
+  quantity_delta / reason
+}
+pos ||--o{ candidate
+candidate |o--o{ emp : nullable candidate reference
+emp ||--o{ shift
+shift ||--o{ attendance
+emp ||--o{ leave
+emp ||--o{ review
+schedule ||--o{ run
+run ||--o{ slip
+asset ||--o{ movement
+emp ..> slip : logical employee reference
+emp ..> movement : logical assignment reference
+leave ..> notification : decision notification\nNOT FK
+note bottom of run
+All domain records carry institution_id.
+Run unique per institution + period.
+Payslip unique per institution + employee + period.
+Employee identity provisioning is separate from hiring.
+end note
+@enduml
