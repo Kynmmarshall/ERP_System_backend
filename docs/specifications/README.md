@@ -15,9 +15,10 @@ Detailed, source-grounded LaTeX documents for **both** repositories:
 | UML suite: 22 diagrams | Embedded in the documents | [PlantUML sources](diagrams/) |
 | Zoomable diagrams | [SVG and PNG renders](diagrams/rendered/) | Shared [theme](diagrams/theme.puml) |
 
-The complete SRS is **33 pages** and the SDD **57 pages**, including detailed
+The complete SRS is **33 pages** and the SDD **58 pages**, including detailed
 appendices and diagram sheets. The [artifact verification record](output/validation.json)
-contains page-budget checks, source counts and SHA-256 hashes for the verified PDFs.
+contains the earlier detailed verification and a `latest_rebuild` record with
+current page counts, source/render counts and SHA-256 hashes for the rebuilt PDFs.
 
 The SRS includes individually identified functional/nonfunctional requirements,
 acceptance conditions, ten use cases, frontend coverage, test traceability,

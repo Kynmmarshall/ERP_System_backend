@@ -1,4 +1,37 @@
 {
+  "latest_rebuild": {
+    "rebuilt_on": "2026-09-15",
+    "scope": "Existing build.ps1 completed successfully. Regenerated source inventories, all diagrams and both PDFs. Page counts and figure inclusion were checked against compiler output; PDF hashes were recomputed. Application tests and the earlier full PDF geometry/bookmark checks were not rerun.",
+    "documents": {
+      "srs.pdf": {
+        "physical_pages": 33,
+        "counted_non_appendix_pages": 9,
+        "embedded_diagram_sheets": 2,
+        "sha256": "201a4f896b3fc640e91623983307cf8bdd7dd03b27d4ef829c9d4d8da136c53b"
+      },
+      "sdd.pdf": {
+        "physical_pages": 58,
+        "counted_non_appendix_pages": 11,
+        "embedded_diagram_sheets": 22,
+        "sha256": "876caaea5a9565ba8222c783fb082beea408abc7931e39dd5424368440049685",
+        "full_system_class_diagram_figure": 5,
+        "full_system_class_diagram_printed_page": 20
+      }
+    },
+    "checks": {
+      "combined_counted_pages": 20,
+      "service_local_route_count": 97,
+      "persisted_model_count": 42,
+      "plantuml_diagrams": 22,
+      "png_renders": 22,
+      "svg_renders": 22,
+      "undefined_latex_references": 0,
+      "overfull_latex_boxes": 0,
+      "missing_character_diagnostics": 0,
+      "new_class_diagram_render_visually_inspected": true
+    },
+    "qualification": "Tectonic again emitted the host fontconfig configuration notice; both compilations succeeded without missing-character or overflow diagnostics. The original detailed verification below is historical and identifies the earlier PDFs by hash."
+  },
   "verified_on": "2026-09-13",
   "scope": "Documentation artifacts only; application tests were not rerun.",
   "baselines": {
@@ -52,7 +85,7 @@
     "Historical performance and recovery measurements are not new runs.",
     "Tectonic emitted a host fontconfig configuration notice; compilation succeeded with no missing-character or overflow diagnostics.",
     "The pre-existing user edit to docs/performance.md and the frontend source tree were not modified.",
-    "The latest rebuild regenerated all 21 PNG/SVG pairs and rechecked PDF pagination, page bounds, bookmarks and hashes.",
+    "The 2026-09-13 verification regenerated all 21 PNG/SVG pairs and rechecked PDF pagination, page bounds, bookmarks and hashes.",
     "This report identifies the verified PDF hashes; regenerate verification after rebuilding or editing."
   ]
 }
