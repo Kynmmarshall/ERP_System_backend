@@ -1,0 +1,327 @@
+@startuml
+!include theme.puml
+title ERP | Full system class diagram (all bounded-context objects)
+top to bottom direction
+hide circle
+skinparam linetype ortho
+
+package "Identity" {
+  class Institution {
+    id : UUID <<PK>>
+    name
+    slug : unique
+  }
+  class Campus {
+    id : UUID <<PK>>
+    institution_id : FK
+    name
+  }
+  class User {
+    id : UUID <<PK>>
+    institution_id : FK, nullable
+    campus_id : FK, nullable
+    email : unique
+    password_hash
+    full_name
+    role : super_admin|admin|staff|student
+    is_active
+    failed_login_attempts
+    locked_until
+  }
+  class RefreshSession {
+    id : UUID <<PK>>
+    user_id : FK
+    family_id : UUID
+    token_hash
+    expires_at
+    revoked_at
+  }
+  Institution "1" -- "0..*" Campus : contains
+  Institution "1" -- "0..*" User : tenant (nullable)
+  Campus "1" -- "0..*" User : assigned campus (nullable)
+  User "1" -- "0..*" RefreshSession : rotates
+}
+
+package "Academic" {
+  class Program {
+    id : UUID <<PK>>
+    institution_id
+    code : unique per institution
+  }
+  class Term {
+    id : UUID <<PK>>
+    institution_id
+    starts_on
+    ends_on
+  }
+  class Enrollment {
+    id : UUID <<PK>>
+    program_id : FK
+    term_id : FK
+    institution_id / campus_id / student_id
+    status : accepted
+  }
+  class Course {
+    id : UUID <<PK>>
+    program_id : FK
+    code / name / credits
+  }
+  class CoursePrerequisite {
+    id : UUID <<PK>>
+    course_id : FK
+    prerequisite_course_id : FK
+  }
+  class CourseOffering {
+    id : UUID <<PK>>
+    course_id : FK
+    term_id : FK
+    instructor_id : opaque UUID
+    room / capacity
+  }
+  class CourseRegistration {
+    id : UUID <<PK>>
+    enrollment_id : FK
+    course_offering_id : FK
+    student_id : opaque UUID
+  }
+  class AttendanceSession {
+    id : UUID <<PK>>
+    course_offering_id : FK
+    session_date
+  }
+  class AttendanceRecordAcademic <<AttendanceRecord>> {
+    id : UUID <<PK>>
+    attendance_session_id : FK
+    student_id / present
+  }
+  class Assessment {
+    id : UUID <<PK>>
+    course_offering_id : FK
+    name / max_score
+  }
+  class Grade {
+    id : UUID <<PK>>
+    assessment_id : FK
+    student_id / score / published
+  }
+  class GradeAppeal {
+    id : UUID <<PK>>
+    grade_id : FK
+    student_id / status / reason
+    reviewer_notes / decided_by / decided_at
+  }
+  class GradeAuditLog {
+    id : UUID <<PK>>
+    grade_id : FK
+    old_score / new_score / changed_by
+  }
+  class ExamSchedule {
+    id : UUID <<PK>>
+    course_offering_id : FK
+    term_id : FK
+    room / starts_at / ends_at
+  }
+  class OutboxEvent {
+    id : UUID <<PK, event_id>>
+    institution_id / correlation_id
+    event_type / schema_version / payload
+    created_at / published_at
+  }
+  Program "1" -- "0..*" Enrollment
+  Term "1" -- "0..*" Enrollment
+  Program "1" -- "0..*" Course
+  Course "1" -- "0..*" CoursePrerequisite : course
+  Course "1" -- "0..*" CoursePrerequisite : prerequisite
+  Course "1" -- "0..*" CourseOffering
+  Term "1" -- "0..*" CourseOffering
+  Enrollment "1" -- "0..*" CourseRegistration
+  CourseOffering "1" -- "0..*" CourseRegistration
+  CourseOffering "1" -- "0..*" AttendanceSession
+  AttendanceSession "1" -- "0..*" AttendanceRecordAcademic
+  CourseOffering "1" -- "0..*" Assessment
+  Assessment "1" -- "0..*" Grade
+  Grade "1" -- "0..*" GradeAppeal
+  Grade "1" -- "0..*" GradeAuditLog
+  CourseOffering "1" -- "0..1" ExamSchedule
+  Term "1" -- "0..*" ExamSchedule
+  Enrollment ..> OutboxEvent : atomic write (payload link, not FK)
+}
+
+package "Finance" {
+  interface PaymentGateway {
+    +request_to_pay(reference, amount_xaf, payer_msisdn)
+    +get_status(reference, requested_at, payer_msisdn)
+  }
+  class MtnMomoGateway {
+    -_access_token
+    -_token_expires_at
+  }
+  class CamerPayTestDoubleGateway
+  class FeeSchedule {
+    id : UUID <<PK>>
+    institution_id / program_id / term_id
+    amount_xaf : nonnegative
+  }
+  class Invoice {
+    id : UUID <<PK>>
+    institution_id / enrollment_id / student_id
+    amount_xaf / status
+  }
+  class InboxEvent {
+    event_id : UUID <<PK>>
+    event_type / processed_at
+  }
+  class PaymentIntent {
+    id : UUID <<PK>>
+    invoice_id : FK
+    provider_reference : unique
+    amount_xaf / payer_msisdn / status
+  }
+  class Receipt {
+    id : UUID <<PK>>
+    invoice_id : UUID, unique (no FK)
+    payment_intent_id : UUID (no FK)
+    amount_xaf
+  }
+  class LedgerEntry {
+    id : UUID <<PK>>
+    posting_id : UUID
+    institution_id
+    entry_type / direction / amount_xaf
+    reference_type / reference_id
+  }
+  class Expense {
+    id : UUID <<PK>>
+    institution_id
+    category / amount_xaf / recorded_by
+  }
+  class Campaign {
+    id : UUID <<PK>>
+    institution_id / name
+    cost_xaf / starts_on / ends_on
+  }
+  class Lead {
+    id : UUID <<PK>>
+    campaign_id : FK
+    student_id : opaque UUID, nullable
+    status : new|converted
+  }
+  class FinancialSummary {
+    id : UUID <<PK>>
+    institution_id / period / version
+    total_revenue_xaf / total_expenses_xaf / net_xaf
+  }
+  PaymentGateway <|.. MtnMomoGateway
+  PaymentGateway <|.. CamerPayTestDoubleGateway
+  Invoice "1" -- "0..*" PaymentIntent
+  Invoice "1" -- "0..1" Receipt : logical, no FK
+  PaymentIntent ..> Receipt : logical reference
+  Campaign "1" -- "0..*" Lead
+  FeeSchedule ..> Invoice : consumer lookup, not FK
+  InboxEvent ..> Invoice : same transaction, not FK
+  PaymentIntent ..> LedgerEntry : balanced posting
+  Expense ..> LedgerEntry : balanced posting
+  LedgerEntry ..> FinancialSummary : monthly aggregation
+  Lead ..> Invoice : student attribution join, not FK
+}
+
+package "HR" {
+  class Position {
+    id : UUID <<PK>>
+    title / department / status
+  }
+  class Candidate {
+    id : UUID <<PK>>
+    position_id : FK
+    full_name / email / stage
+  }
+  class Employee {
+    id : UUID <<PK>>
+    candidate_id : FK, nullable
+    user_id : opaque UUID, nullable
+    gross_monthly_salary_xaf / status
+  }
+  class AttendanceShift {
+    id : UUID <<PK>>
+    employee_id : FK
+    starts_at / ends_at / qr_token_jti
+  }
+  class AttendanceRecordHR <<AttendanceRecord>> {
+    id : UUID <<PK>>
+    shift_id : FK
+    employee_id / checked_in_at
+  }
+  class LeaveRequest {
+    id : UUID <<PK>>
+    employee_id : FK
+    starts_on / ends_on / status
+    decided_by / decided_at
+  }
+  class Notification {
+    id : UUID <<PK>>
+    user_id : opaque UUID
+    message / read_at
+  }
+  class PerformanceReview {
+    id : UUID <<PK>>
+    employee_id : FK
+    reviewer_id / period / rating / comments
+  }
+  class PayrollScheduleVersion {
+    id : UUID <<PK>>
+    effective_from / is_verified
+    cnps_rates / ceiling / deduction_rate / irpp_brackets
+  }
+  class PayrollRun {
+    id : UUID <<PK>>
+    schedule_version_id : FK
+    period / status / approved_by / approved_at
+  }
+  class Payslip {
+    id : UUID <<PK>>
+    run_id : FK
+    employee_id : UUID (no FK)
+    gross / cnps / taxable / irpp / net
+  }
+  class Asset {
+    id : UUID <<PK>>
+    name / category / total_quantity
+  }
+  class AssetMovement {
+    id : UUID <<PK>>
+    asset_id : FK
+    employee_id : UUID, nullable (no FK)
+    quantity_delta / reason
+  }
+  Position "1" -- "0..*" Candidate
+  Candidate "0..1" -- "0..*" Employee : nullable hire link
+  Employee "1" -- "0..*" AttendanceShift
+  AttendanceShift "1" -- "0..*" AttendanceRecordHR
+  Employee "1" -- "0..*" LeaveRequest
+  Employee "1" -- "0..*" PerformanceReview
+  PayrollScheduleVersion "1" -- "0..*" PayrollRun
+  PayrollRun "1" -- "0..*" Payslip
+  Asset "1" -- "0..*" AssetMovement
+  Employee ..> Payslip : logical employee reference
+  Employee ..> AssetMovement : logical assignment reference
+  LeaveRequest ..> Notification : decision notification, not FK
+}
+
+' Cross-boundary logical references (opaque UUIDs, no cross-database foreign keys)
+User ..> Employee : identity provisioning (opaque)
+User ..> Invoice : student_id (opaque)
+User ..> Lead : student_id (opaque)
+User ..> GradeAppeal : student_id (opaque)
+User ..> Notification : user_id (opaque)
+CourseOffering ..> User : instructor_id (opaque)
+
+note bottom
+Solid line + multiplicity: in-service ORM association (real foreign key).
+Dashed arrow: cross-table/cross-service logical reference or derived dependency; NOT a database foreign key.
+Dashed hollow triangle: interface realization (structural typing, no runtime inheritance).
+Four bounded contexts (Identity, Academic, Finance, HR) own separate databases; there are
+no cross-database foreign keys. Diagram consolidates the 06-09 ERDs into one object model
+per the assignment's "capture every object, attribute and relation" class-diagram requirement.
+05-domain-classes.puml remains the focused Finance/payroll implementation-collaboration view.
+end note
+@enduml

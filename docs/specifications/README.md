@@ -12,7 +12,7 @@ Detailed, source-grounded LaTeX documents for **both** repositories:
 |---|---|---|
 | Software Requirements Specification | [srs.pdf](output/srs.pdf) | [srs.tex](srs.tex) |
 | Software Design Document / technical report | [sdd.pdf](output/sdd.pdf) | [sdd.tex](sdd.tex) |
-| UML suite: 21 diagrams | Embedded in the documents | [PlantUML sources](diagrams/) |
+| UML suite: 22 diagrams | Embedded in the documents | [PlantUML sources](diagrams/) |
 | Zoomable diagrams | [SVG and PNG renders](diagrams/rendered/) | Shared [theme](diagrams/theme.puml) |
 
 The complete SRS is **33 pages** and the SDD **57 pages**, including detailed
@@ -109,6 +109,7 @@ use original sheet size where possible rather than shrinking every diagram to A4
 | 02 | Actors and use cases |
 | 03 | Runtime components and service ownership |
 | 04 | React frontend composition and data flow |
+| 05a | Full system class diagram: every object, attribute and relation across all four bounded contexts |
 | 05 | Payment protocol / ORM / payroll class collaboration |
 | 06 | Identity ERD |
 | 07 | Academic ERD |
