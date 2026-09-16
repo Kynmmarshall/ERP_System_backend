@@ -51,10 +51,10 @@ The seed command prints one dev-only email/password per role (Super Admin,
 Admin, Staff, Student) for ICT University, plus a second synthetic
 institution used only to prove tenant isolation.
 
-Open http://localhost:8081/healthz (gateway liveness) and
-http://localhost:8081/api/v1/academic/healthz (a real request proxied through
+Open http://localhost:2022/healthz (gateway liveness) and
+http://localhost:2022/api/v1/academic/healthz (a real request proxied through
 the gateway to the academic service). Log in via
-`POST http://localhost:8081/api/v1/auth/login` with one of the seeded
+`POST http://localhost:2022/api/v1/auth/login` with one of the seeded
 accounts to get an access token; `GET /api/v1/academic/me` (and finance/hr)
 with that token proves the gateway's `auth_request` and each service's
 independent JWT verification both work end-to-end.

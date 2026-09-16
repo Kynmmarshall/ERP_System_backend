@@ -49,5 +49,5 @@ services:
     image: ${REGISTRY_HOST}/${REGISTRY_NAMESPACE}/erp-gateway:${IMAGE_TAG}
     ports:
       # Bound to loopback only; the host's existing Nginx terminates TLS on
-      # ERP_DOMAIN and proxies to 127.0.0.1:8081. Never publish 0.0.0.0 here.
-      - "127.0.0.1:8081:80"
+      # ERP_DOMAIN and proxies to 127.0.0.1:2022. Never publish 0.0.0.0 here.
+      - "127.0.0.1:2022:80"

@@ -186,7 +186,7 @@ services:
     build: ./gateway
     <<: *service_defaults
     ports:
-      - "8081:80"
+      - "2022:80"
     depends_on:
       frontend:
         condition: service_healthy

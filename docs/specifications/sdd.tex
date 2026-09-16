@@ -279,14 +279,14 @@ and \ref{fig:21-stock-activity}.
 Compose creates ten containers: four web APIs, two workers, frontend, gateway,
 PostgreSQL and RabbitMQ. API images use Python 3.13; frontend is built with Node 22
 and served by Nginx 1.27. Service APIs listen on 8000 internally, frontend/gateway
-on 80, database on 5432 and broker AMQP on 5672. Local gateway publishes 8081;
+on 80, database on 5432 and broker AMQP on 5672. Local gateway publishes 2022;
 broker management publishes loopback 15672. Domain APIs/databases are not public
 host listeners in the base stack. The test overlay changes development test exposure.
 
 The frontend Dockerfile runs \code{npm ci} and the TypeScript/Vite build, then copies
 \code{dist} into Nginx. Static Nginx provides SPA deep-link fallback and thirty-day
 immutable caching for selected asset extensions. Vite development proxies \code{/api}
-to the gateway on 8081; gateway-root \code{/healthz} is not covered by that Vite proxy.
+to the gateway on 2022; gateway-root \code{/healthz} is not covered by that Vite proxy.
 Keys are read-only mounted; production secrets must not use dev key material.
 
 \subsection{Delivery definitions versus execution evidence}
@@ -678,7 +678,7 @@ interpreter for your platform, rather than blindly copying a machine-specific ex
 Seed outputs are development credentials and fixtures, not real accounts.
 Verify seed identifier alignment, fee schedules and employee/user linkage before
 demonstrating dependent workflows. Never run seed scripts against production records.
-Start with gateway \code{http://localhost:8081}; inspect each API's \code{readyz},
+Start with gateway \code{http://localhost:2022}; inspect each API's \code{readyz},
 not only gateway liveness. Workers have no Compose health check; verify event
 transfer by enrolling a synthetic student and observing a Finance invoice.
 

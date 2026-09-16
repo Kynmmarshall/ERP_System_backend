@@ -1,0 +1,7 @@
+# The deploy scripts are authored on Windows but executed by bash on the VPS.
+# Without this, a CRLF checkout makes every one of them die with the
+# unhelpful `$'\r': command not found`.
+*.sh text eol=lf
+*.Jenkinsfile text eol=lf
+Jenkinsfile text eol=lf
+*.conf text eol=lf

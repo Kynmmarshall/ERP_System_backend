@@ -5,7 +5,7 @@
   ordinary authenticated CRUD reads (excluding external-provider latency),
   error rate <1%.
 - This run: `tests/load/k6-smoke.js`, 25 VUs, 90s, against the LOCAL
-  docker-compose stack's gateway (`http://localhost:8081`) on the
+  docker-compose stack's gateway (`http://localhost:2022`) on the
   developer's Windows machine - NOT the production VPS, NOT a dedicated
   load-test environment. The machine was also running Docker Desktop
   (having just rebuilt 8 images), several browser tabs, and this coding
@@ -57,7 +57,7 @@
 
 ## How to reproduce
 ```powershell
-k6 run --env BASE_URL=http://localhost:8081 `
+k6 run --env BASE_URL=http://localhost:2022 `
   --env ADMIN_PASSWORD=<seeded admin password> `
   --env SMOKE_VUS=25 --env SMOKE_DURATION=90s `
   tests/load/k6-smoke.js

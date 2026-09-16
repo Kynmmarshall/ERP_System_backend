@@ -1,0 +1,54 @@
+# Single-VPS production overrides: images are BUILT ON THE BOX (no registry),
+# and the host's Nginx terminates TLS in front of the Dockerised gateway.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.vps.yml up -d --build
+#
+# Use this INSTEAD of docker-compose.prod.yml, not alongside it. The prod file
+# is for the registry-based promotion pipeline (ops/jenkins/Deploy.Jenkinsfile)
+# and resets every build context.
+#
+# The base compose file hardcodes ENVIRONMENT=development on every service.
+# Flipping it to production here is what arms the identity config validator
+# (which then refuses to start on a console MFA provider, so admin codes can
+# never be the fixed dev 123456) and the Secure refresh cookie.
+services:
+  identity:
+    environment:
+      ENVIRONMENT: production
+      # Real HTTPS in front, so the cookie must carry the Secure attribute.
+      REFRESH_COOKIE_SECURE: "true"
+    volumes: !override
+      - ${JWT_PRIVATE_KEY_FILE}:/run/secrets/jwt_private_key.pem:ro
+      - ${JWT_PUBLIC_KEY_FILE}:/run/secrets/jwt_public_key.pem:ro
+
+  academic:
+    environment:
+      ENVIRONMENT: production
+    volumes: !override
+      - ${JWT_PUBLIC_KEY_FILE}:/run/secrets/jwt_public_key.pem:ro
+
+  academic-worker:
+    environment:
+      ENVIRONMENT: production
+
+  finance:
+    environment:
+      ENVIRONMENT: production
+    volumes: !override
+      - ${JWT_PUBLIC_KEY_FILE}:/run/secrets/jwt_public_key.pem:ro
+
+  finance-worker:
+    environment:
+      ENVIRONMENT: production
+
+  hr:
+    environment:
+      ENVIRONMENT: production
+    volumes: !override
+      - ${JWT_PUBLIC_KEY_FILE}:/run/secrets/jwt_public_key.pem:ro
+
+  gateway:
+    ports: !override
+      # Loopback only. The host's Nginx owns 80/443 and proxies here, so the
+      # gateway must never be reachable directly from the internet.
+      - "127.0.0.1:2022:80"

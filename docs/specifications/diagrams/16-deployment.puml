@@ -24,9 +24,9 @@ node "Single deployment host\nLocal stack OR intended Linux VPS" {
   artifact "JWT PEM files\nread-only mounts\nprivate: Identity only" as keys
   artifact "Cron health script\nservice/queue/disk/memory checks" as monitor
 }
-browser --> gw : Local :8081 HTTP
+browser --> gw : Local :2022 HTTP
 browser ..> tls : Intended production HTTPS :443
-tls ..> gw : Intended loopback :8081
+tls ..> gw : Intended loopback :2022
 gw --> front : / and static assets
 gw --> id : /auth + internal verify
 gw --> ac : /academic

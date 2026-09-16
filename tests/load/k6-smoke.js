@@ -1,5 +1,5 @@
 // k6 load test against the LOCAL docker-compose stack's gateway
-// (http://localhost:8081) - never point this at the real production VPS.
+// (http://localhost:2022) - never point this at the real production VPS.
 //
 // Scope/disclosure: plan.md's target is 25 concurrent sessions for 5
 // minutes. This script defaults to a shorter, clearly-labeled smoke
@@ -24,7 +24,7 @@
 import http from 'k6/http'
 import { check, sleep } from 'k6'
 
-const BASE_URL = __ENV.BASE_URL || 'http://localhost:8081'
+const BASE_URL = __ENV.BASE_URL || 'http://localhost:2022'
 const ADMIN_EMAIL = __ENV.ADMIN_EMAIL || 'admin@ictuniversity.example'
 const ADMIN_PASSWORD = __ENV.ADMIN_PASSWORD || ''
 
