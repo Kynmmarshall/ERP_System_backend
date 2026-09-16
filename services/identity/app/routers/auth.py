@@ -24,7 +24,16 @@ from app.core.security import (
 )
 from app.core.tenant_context import set_platform_context, set_tenant_context
 from app.deps import get_current_claims
-from app.models.identity import Campus, Institution, MfaChallenge, RefreshSession, Role, User
+from app.models.identity import (
+    Campus,
+    Institution,
+    MfaChallenge,
+    RefreshSession,
+    Role,
+    RoleRequest,
+    RoleRequestStatus,
+    User,
+)
 from app.schemas import (
     AccessTokenResponse,
     LoginRequest,
@@ -197,8 +206,9 @@ async def register(
 ) -> AccessTokenResponse:
     """Public self-registration. Always creates a STUDENT account in the
     configured institution - role/institution are never accepted from the
-    client, only ever derived server-side. Staff/admin accounts remain
-    admin-provisioned only (see readme.md / scripts/seed.py).
+    client, only ever derived server-side. An applicant may *request* a
+    staff/admin dashboard, which records a pending RoleRequest that grants
+    nothing until an admin approves it (see routers/role_requests.py).
     """
     await set_platform_context(session)
     email = payload.email.lower()
@@ -250,6 +260,23 @@ async def register(
     # must be re-applied before _issue_tokens_for_user's own insert below,
     # or RLS silently blocks it (see app/core/tenant_context.py).
     await set_platform_context(session)
+
+    if payload.requested_role is not None and payload.requested_role != Role.STUDENT:
+        session.add(
+            RoleRequest(
+                user_id=user.id,
+                institution_id=institution.id,
+                requested_role=payload.requested_role,
+                status=RoleRequestStatus.PENDING,
+                justification=payload.justification,
+            )
+        )
+        await session.commit()
+        await set_platform_context(session)
+        logger.info(
+            "Role request raised: user=%s requested=%s", user.id, payload.requested_role.value
+        )
+
     return await _issue_tokens_for_user(session, response, user)
 
 

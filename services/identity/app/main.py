@@ -6,6 +6,7 @@ from app.core.config import settings
 from app.core.db import database_is_ready
 from app.routers.auth import router as auth_router
 from app.routers.internal import router as internal_router
+from app.routers.role_requests import router as role_requests_router
 from app.routers.users import router as users_router
 
 logging.basicConfig(level=settings.log_level)
@@ -24,6 +25,9 @@ app = FastAPI(
 
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(users_router, prefix="/api/v1/auth/users", tags=["users"])
+app.include_router(
+    role_requests_router, prefix="/api/v1/auth/role-requests", tags=["role-requests"]
+)
 app.include_router(internal_router, prefix="/internal", tags=["internal"], include_in_schema=False)
 
 

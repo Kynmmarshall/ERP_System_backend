@@ -1,9 +1,9 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
-from app.models.identity import Role
+from app.models.identity import Role, RoleRequestStatus
 
 
 class LoginRequest(BaseModel):
@@ -12,12 +12,27 @@ class LoginRequest(BaseModel):
 
 
 class RegisterRequest(BaseModel):
-    """Public self-registration - always creates a STUDENT account; role is
-    never accepted from the client (see app/routers/auth.py)."""
+    """Public self-registration - always creates a STUDENT account; the role
+    is never taken from the client. `requested_role` only records which
+    dashboard the applicant is asking for, to be approved by an admin later
+    (see app/routers/auth.py).
+    """
 
     email: EmailStr
     password: str = Field(min_length=8, max_length=200)
     full_name: str = Field(min_length=1, max_length=200)
+    requested_role: Role | None = None
+    justification: str = Field(default="", max_length=500)
+
+    @field_validator("requested_role")
+    @classmethod
+    def _only_requestable_roles(cls, value: Role | None) -> Role | None:
+        # SUPER_ADMIN is platform-level: allowing it here would let an
+        # institution admin approve someone into platform-wide access, which
+        # routers/users.py deliberately reserves for an existing super admin.
+        if value is not None and value not in (Role.STUDENT, Role.STAFF, Role.ADMIN):
+            raise ValueError("That role cannot be requested at registration")
+        return value
 
 
 class AccessTokenResponse(BaseModel):
@@ -68,3 +83,19 @@ class UserSummaryResponse(BaseModel):
 
 class UserRoleUpdateRequest(BaseModel):
     role: Role
+
+
+class RoleRequestResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    user_id: uuid.UUID
+    requested_role: Role
+    status: RoleRequestStatus
+    justification: str
+    decided_at: datetime | None
+    created_at: datetime
+
+
+class RoleRequestDecisionRequest(BaseModel):
+    approve: bool

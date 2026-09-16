@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, String, func
+from sqlalchemy import DateTime, Enum, ForeignKey, Index, String, func, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -133,3 +133,52 @@ class MfaChallenge(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (Index("ix_mfa_challenges_user_id", "user_id"),)
+
+
+class RoleRequestStatus(str, enum.Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
+class RoleRequest(Base):
+    """A self-registered user's application for a non-student role. The
+    account is always created as STUDENT regardless; this row only records
+    what they asked for. The elevation happens exclusively when an admin
+    approves, so the request itself grants nothing.
+    """
+
+    __tablename__ = "role_requests"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    # Denormalized from the user so RLS can scope this table like `users`.
+    institution_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("institutions.id", ondelete="CASCADE"), nullable=True
+    )
+    requested_role: Mapped[Role] = mapped_column(Enum(Role, name="user_role"), nullable=False)
+    status: Mapped[RoleRequestStatus] = mapped_column(
+        Enum(RoleRequestStatus, name="role_request_status"),
+        nullable=False,
+        default=RoleRequestStatus.PENDING,
+    )
+    justification: Mapped[str] = mapped_column(String(500), nullable=False, default="")
+    decided_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        Index("ix_role_requests_institution_id", "institution_id"),
+        # One open application per user - stops a queue being flooded by
+        # repeat submissions from the same account.
+        Index(
+            "uq_role_requests_one_pending_per_user",
+            "user_id",
+            unique=True,
+            postgresql_where=text("status = 'PENDING'"),
+        ),
+    )
