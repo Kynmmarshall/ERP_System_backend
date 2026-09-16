@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.models.identity import Role, RoleRequestStatus
 
@@ -23,16 +23,6 @@ class RegisterRequest(BaseModel):
     full_name: str = Field(min_length=1, max_length=200)
     requested_role: Role | None = None
     justification: str = Field(default="", max_length=500)
-
-    @field_validator("requested_role")
-    @classmethod
-    def _only_requestable_roles(cls, value: Role | None) -> Role | None:
-        # SUPER_ADMIN is platform-level: allowing it here would let an
-        # institution admin approve someone into platform-wide access, which
-        # routers/users.py deliberately reserves for an existing super admin.
-        if value is not None and value == Role.SUPER_ADMIN:
-            raise ValueError("That role cannot be requested at registration")
-        return value
 
 
 class AccessTokenResponse(BaseModel):

@@ -1,5 +1,5 @@
 """Role-enforcement (403) tests for hr - the service with the narrowest role
-bands (several routes are super_admin-only because they release money).
+bands, because several routes release money.
 Deliberately assert on the role gate ONLY: a rejected caller must never
 reach the business logic, so these send minimal bodies and still expect 403.
 """
@@ -34,12 +34,23 @@ async def test_staff_cannot_do_hr_admin_work(client) -> None:
         assert response.status_code == 403, f"{method.upper()} {path} should be 403 for staff"
 
 
-async def test_admin_cannot_verify_a_payroll_schedule_only_super_admin_can(client) -> None:
-    """The statutory-rate release gate - deliberately above admin level."""
+async def test_staff_cannot_verify_a_payroll_schedule(client) -> None:
+    """The statutory-rate release gate is admin-level; nobody below it."""
+    response = await client.patch(
+        f"/api/v1/hr/payroll/schedules/{uuid.uuid4()}/verify", headers=_auth("lecturer")
+    )
+    assert response.status_code == 403
+
+
+async def test_admin_passes_the_role_gate_on_schedule_verification(client) -> None:
+    """An admin is allowed through the ROLE gate - an unknown id is a 404,
+    not a 403. Whether they may verify a PARTICULAR schedule is the
+    four-eyes rule, covered in test_payroll_run.py.
+    """
     response = await client.patch(
         f"/api/v1/hr/payroll/schedules/{uuid.uuid4()}/verify", headers=_auth("admin")
     )
-    assert response.status_code == 403
+    assert response.status_code == 404
 
 
 async def test_staff_cannot_approve_a_payroll_run(client) -> None:
@@ -49,13 +60,13 @@ async def test_staff_cannot_approve_a_payroll_run(client) -> None:
     assert response.status_code == 403
 
 
-async def test_admin_may_approve_a_payroll_run_but_only_after_a_super_admin_verified_the_rates(
+async def test_admin_may_approve_a_payroll_run_but_only_after_the_rates_were_verified(
     client,
 ) -> None:
-    """Documents the real two-step control (Phase 6): approving a RUN is
-    admin-level, but it is worthless until a super_admin has verified the
-    rate schedule behind it. So admin must pass the role gate here (404 for
-    an unknown run id, not 403) while still being blocked one level up.
+    """Documents the real two-step control: approving a RUN is admin-level,
+    but it is worthless until the rate schedule behind it has been verified
+    by a second admin. So admin passes the role gate here (404 for an
+    unknown run id, not 403) while still being blocked one level up.
     """
     response = await client.post(
         f"/api/v1/hr/payroll/runs/{uuid.uuid4()}/approve", headers=_auth("admin")

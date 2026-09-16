@@ -282,7 +282,7 @@ async def test_register_ignores_client_supplied_role(client, monkeypatch) -> Non
             "email": email,
             "password": "a-strong-password",
             "full_name": "Sneaky User",
-            "role": "super_admin",
+            "role": "admin",
         },
     )
 

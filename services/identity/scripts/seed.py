@@ -32,8 +32,10 @@ INSTITUTIONS = [
 ]
 
 SEED_USERS = [
-    ("superadmin@ictuniversity.example", "Platform Super Admin", Role.SUPER_ADMIN, None),
     ("admin@ictuniversity.example", "ICT University Admin", Role.ADMIN, "ict-main"),
+    # A second admin exists so payroll's four-eyes rule can be demonstrated:
+    # nobody may verify a rate schedule they authored themselves.
+    ("admin2@ictuniversity.example", "ICT University Deputy Admin", Role.ADMIN, "ict-main"),
     ("lecturer@ictuniversity.example", "ICT University Lecturer", Role.LECTURER, "ict-main"),
     ("finance@ictuniversity.example", "ICT University Finance", Role.FINANCE_STAFF, "ict-main"),
     ("marketing@ictuniversity.example", "ICT University Marketing", Role.MARKETING, "ict-main"),

@@ -22,13 +22,12 @@ from app.schemas import RoleRequestDecisionRequest, RoleRequestResponse
 router = APIRouter()
 logger = logging.getLogger("identity.role_requests")
 
-_ADMIN_ROLES = (Role.ADMIN.value, Role.SUPER_ADMIN.value)
+_ADMIN_ROLES = (Role.ADMIN.value,)
 
 
 async def _scoped_session(claims: dict, session: AsyncSession) -> None:
-    is_platform_admin = claims.get("role") == Role.SUPER_ADMIN.value and claims.get("tenant_id") is None
     await set_tenant_context(
-        session, institution_id=claims.get("tenant_id"), is_platform_admin=is_platform_admin
+        session, institution_id=claims.get("tenant_id"), is_platform_admin=False
     )
 
 

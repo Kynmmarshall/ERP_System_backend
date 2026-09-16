@@ -231,6 +231,8 @@ class PayrollScheduleResponse(BaseModel):
     id: uuid.UUID
     effective_from: date
     is_verified: bool
+    created_by: uuid.UUID | None
+    verified_by: uuid.UUID | None
     cnps_employee_rate: Decimal
     cnps_employer_rate: Decimal
     cnps_ceiling_xaf: int

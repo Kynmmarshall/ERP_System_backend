@@ -16,7 +16,7 @@ router = APIRouter()
     "/fee-schedules",
     response_model=FeeScheduleResponse,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_roles("admin", "finance_staff", "super_admin"))],
+    dependencies=[Depends(require_roles("admin", "finance_staff"))],
 )
 async def create_fee_schedule(
     payload: FeeScheduleCreateRequest,

@@ -49,6 +49,10 @@ class PayrollScheduleVersion(Base):
     cnps_ceiling_xaf: Mapped[int] = mapped_column(BigInteger, nullable=False)
     standard_deduction_rate: Mapped[Decimal] = mapped_column(Numeric(6, 4), nullable=False)
     irpp_brackets: Mapped[list] = mapped_column(JSONB, nullable=False)
+    # Both recorded so verification can require a different person than the
+    # one who set the rates.
+    created_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    verified_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (Index("ix_payroll_schedule_versions_institution_id", "institution_id"),)

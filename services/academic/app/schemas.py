@@ -52,7 +52,7 @@ class CourseCreateRequest(BaseModel):
     program_id: uuid.UUID
     code: str
     name: str
-    credits: int = 3
+    credits: int = 6
 
 
 class CourseResponse(BaseModel):

@@ -101,16 +101,6 @@ async def test_admin_login_returns_mfa_challenge_not_tokens(client) -> None:
     assert "refresh_token" not in response.cookies
 
 
-async def test_super_admin_login_also_requires_mfa(client) -> None:
-    _, users = await _institution_with_users(Role.SUPER_ADMIN)
-
-    response = await client.post(
-        "/api/v1/auth/login", json={"email": users[Role.SUPER_ADMIN].email, "password": _PASSWORD}
-    )
-
-    assert response.json()["mfa_required"] is True
-
-
 async def test_student_and_staff_login_does_not_require_mfa(client) -> None:
     _, users = await _institution_with_users(Role.STUDENT, Role.LECTURER)
 
@@ -283,37 +273,56 @@ async def test_admin_cannot_change_own_role(client) -> None:
 
     response = await client.patch(
         f"/api/v1/auth/users/{admin.id}/role",
-        json={"role": "super_admin"},
+        json={"role": "admin"},
         headers={"Authorization": f"Bearer {token}"},
     )
 
     assert response.status_code == 403
 
 
-async def test_admin_cannot_grant_super_admin(client) -> None:
+async def test_admin_can_grant_admin_to_another_user(client) -> None:
     _, users = await _institution_with_users(Role.ADMIN, Role.STUDENT)
     token = await _login_with_mfa(client, users[Role.ADMIN])
 
     response = await client.patch(
         f"/api/v1/auth/users/{users[Role.STUDENT].id}/role",
-        json={"role": "super_admin"},
+        json={"role": "admin"},
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    assert response.status_code == 403
+    assert response.status_code == 200
+    assert response.json()["role"] == "admin"
 
 
-async def test_admin_cannot_demote_a_super_admin(client) -> None:
-    _, users = await _institution_with_users(Role.ADMIN, Role.SUPER_ADMIN)
+async def test_the_last_admin_cannot_be_demoted(client) -> None:
+    """Admin is the only administrative role, so removing the last one would
+    leave nobody able to grant it back."""
+    institution, users = await _institution_with_users(Role.ADMIN, Role.STUDENT)
+    # Promote the student so the acting admin has someone else to demote,
+    # then demote the ORIGINAL admin, leaving exactly one.
     token = await _login_with_mfa(client, users[Role.ADMIN])
-
-    response = await client.patch(
-        f"/api/v1/auth/users/{users[Role.SUPER_ADMIN].id}/role",
-        json={"role": "student"},
+    await client.patch(
+        f"/api/v1/auth/users/{users[Role.STUDENT].id}/role",
+        json={"role": "admin"},
         headers={"Authorization": f"Bearer {token}"},
+    )
+    await client.patch(
+        f"/api/v1/auth/users/{users[Role.ADMIN].id}/role",
+        json={"role": "student"},
+        headers={"Authorization": f"Bearer {await _login_with_mfa(client, users[Role.STUDENT])}"},
+    )
+
+    # Only the promoted account is left as admin; it cannot be demoted by
+    # anyone, and it cannot demote itself either.
+    promoted_token = await _login_with_mfa(client, users[Role.STUDENT])
+    response = await client.patch(
+        f"/api/v1/auth/users/{users[Role.STUDENT].id}/role",
+        json={"role": "student"},
+        headers={"Authorization": f"Bearer {promoted_token}"},
     )
 
     assert response.status_code == 403
+    assert institution is not None
 
 
 async def test_admin_cannot_change_role_of_user_in_another_institution(client) -> None:

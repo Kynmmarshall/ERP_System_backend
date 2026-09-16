@@ -10,7 +10,6 @@ from app.models.base import Base
 
 
 class Role(str, enum.Enum):
-    SUPER_ADMIN = "super_admin"
     ADMIN = "admin"
     LECTURER = "lecturer"
     FINANCE_STAFF = "finance_staff"
@@ -38,7 +37,7 @@ class User(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    # Null only for a platform SUPER_ADMIN acting outside any single tenant.
+    # Every account belongs to an institution; there is no tenantless role.
     institution_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("institutions.id", ondelete="CASCADE"), nullable=True
     )

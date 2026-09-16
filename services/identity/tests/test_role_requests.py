@@ -116,7 +116,7 @@ async def test_requesting_admin_still_creates_a_student_account(client, monkeypa
         assert request.status == RoleRequestStatus.PENDING
 
 
-async def test_requesting_super_admin_is_rejected(client, monkeypatch) -> None:
+async def test_requesting_an_unknown_role_is_rejected(client, monkeypatch) -> None:
     await _registration_institution(monkeypatch)
 
     response = await client.post(

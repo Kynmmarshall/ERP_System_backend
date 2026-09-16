@@ -14,10 +14,10 @@ it once cost real finance data. Get the live id from identity first:
 Then:
 
     # show what would go, change nothing (default):
-    docker compose exec finance python -m scripts.cleanup_test_data --keep <uuid>
+    docker compose exec hr python -m scripts.cleanup_test_data --keep <uuid>
 
     # actually delete:
-    docker compose exec finance python -m scripts.cleanup_test_data --keep <uuid> --apply
+    docker compose exec hr python -m scripts.cleanup_test_data --keep <uuid> --apply
 
 Pass --keep more than once to protect several institutions.
 

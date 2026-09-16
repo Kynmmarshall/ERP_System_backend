@@ -1,15 +1,15 @@
 """Admin user management - the only way roles are granted or revoked at
 runtime (self-registration is student-only, see routers/auth.py).
 
-Every route here is admin/super_admin only AND tenant-scoped: an institution
-admin operates strictly inside their own institution, enforced by RLS
+Every route here is admin-only AND tenant-scoped: an institution admin
+operates strictly inside their own institution, enforced by RLS
 (set_tenant_context) on top of the explicit role check, not by either alone.
 """
 import logging
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
@@ -21,13 +21,12 @@ from app.schemas import UserRoleUpdateRequest, UserSummaryResponse
 router = APIRouter()
 logger = logging.getLogger("identity.users")
 
-_ADMIN_ROLES = (Role.ADMIN.value, Role.SUPER_ADMIN.value)
+_ADMIN_ROLES = (Role.ADMIN.value,)
 
 
 async def _scoped_session(claims: dict, session: AsyncSession) -> None:
-    is_platform_admin = claims.get("role") == Role.SUPER_ADMIN.value and claims.get("tenant_id") is None
     await set_tenant_context(
-        session, institution_id=claims.get("tenant_id"), is_platform_admin=is_platform_admin
+        session, institution_id=claims.get("tenant_id"), is_platform_admin=False
     )
 
 
@@ -48,20 +47,11 @@ async def update_user_role(
     claims: dict = Depends(require_roles(*_ADMIN_ROLES)),
     session: AsyncSession = Depends(get_session),
 ) -> User:
-    actor_role = claims.get("role")
-
     # No self-service role changes at all: blocks both privilege escalation
     # and an admin accidentally demoting themselves out of the last admin seat.
     if str(user_id) == claims.get("sub"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="You cannot change your own role"
-        )
-
-    # Only a super_admin may mint another super_admin, or strip one - an
-    # institution admin must not be able to manufacture platform-level access.
-    if payload.role == Role.SUPER_ADMIN and actor_role != Role.SUPER_ADMIN.value:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Only a super admin can grant super admin"
         )
 
     await _scoped_session(claims, session)
@@ -72,10 +62,17 @@ async def update_user_role(
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-    if user.role == Role.SUPER_ADMIN and actor_role != Role.SUPER_ADMIN.value:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Only a super admin can change a super admin"
+    # Admin is now the only administrative role, so demoting the last one
+    # would leave the institution with nobody able to grant it back.
+    if user.role == Role.ADMIN and payload.role != Role.ADMIN:
+        remaining = await session.scalar(
+            select(func.count()).select_from(User).where(User.role == Role.ADMIN, User.id != user.id)
         )
+        if not remaining:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="This is the last admin; promote another account first",
+            )
 
     previous_role = user.role
     user.role = payload.role

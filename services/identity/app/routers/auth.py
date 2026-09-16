@@ -51,7 +51,7 @@ _REFRESH_COOKIE_PATH = "/api/v1/auth"
 # users' roles and approve payroll, so a stolen password alone must not be
 # enough. Students/staff are deliberately excluded: forcing an email round
 # trip on every student login is not justified by their privilege level.
-MFA_REQUIRED_ROLES = (Role.ADMIN, Role.SUPER_ADMIN)
+MFA_REQUIRED_ROLES = (Role.ADMIN,)
 
 
 def _set_refresh_cookie(response: Response, token: str) -> None:
@@ -161,7 +161,7 @@ async def _start_mfa_challenge(session: AsyncSession, user: User) -> MfaChalleng
 async def verify_mfa(
     payload: MfaVerifyRequest, response: Response, session: AsyncSession = Depends(get_session)
 ) -> AccessTokenResponse:
-    """Second factor for admin/super_admin logins. Deliberately returns one
+    """Second factor for admin logins. Deliberately returns one
     generic error for every failure mode (unknown/expired/consumed/wrong
     code) so it cannot be used to probe which challenge ids exist.
     """
@@ -350,8 +350,7 @@ async def logout(
 async def me(
     claims: dict = Depends(get_current_claims), session: AsyncSession = Depends(get_session)
 ) -> MeResponse:
-    is_platform_admin = claims.get("role") == Role.SUPER_ADMIN.value and claims.get("tenant_id") is None
-    await set_tenant_context(session, institution_id=claims.get("tenant_id"), is_platform_admin=is_platform_admin)
+    await set_tenant_context(session, institution_id=claims.get("tenant_id"), is_platform_admin=False)
     result = await session.execute(select(User).where(User.id == uuid.UUID(claims["sub"])))
     user = result.scalar_one_or_none()
     if user is None:
