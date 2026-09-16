@@ -20,7 +20,7 @@ from app.schemas import (
 router = APIRouter()
 
 _HR_ADMIN_ROLES = ("admin", "super_admin")
-_STAFF_ROLES = ("admin", "staff", "lecturer", "finance_staff", "super_admin")
+_STAFF_ROLES = ("admin", "lecturer", "finance_staff", "marketing", "super_admin")
 
 
 @router.post("/positions", response_model=PositionResponse, status_code=status.HTTP_201_CREATED)

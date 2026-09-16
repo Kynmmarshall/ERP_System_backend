@@ -30,7 +30,7 @@ class RegisterRequest(BaseModel):
         # SUPER_ADMIN is platform-level: allowing it here would let an
         # institution admin approve someone into platform-wide access, which
         # routers/users.py deliberately reserves for an existing super admin.
-        if value is not None and value not in (Role.STUDENT, Role.STAFF, Role.ADMIN):
+        if value is not None and value == Role.SUPER_ADMIN:
             raise ValueError("That role cannot be requested at registration")
         return value
 

@@ -47,7 +47,7 @@ async def test_student_cannot_read_the_ledger(client) -> None:
 async def test_staff_cannot_regenerate_summaries_only_admin_can(client) -> None:
     """The one finance route deliberately narrower than the usual staff set."""
     response = await client.post(
-        "/api/v1/finance/summaries/regenerate", json={"period": "2026-01-01"}, headers=_auth("staff")
+        "/api/v1/finance/summaries/regenerate", json={"period": "2026-01-01"}, headers=_auth("finance_staff")
     )
     assert response.status_code == 403
 
@@ -59,5 +59,38 @@ async def test_unauthenticated_cannot_list_expenses(client) -> None:
 
 async def test_staff_is_allowed_past_the_role_gate_on_expenses(client) -> None:
     """Proves the 403s above are really about ROLE, not a blanket rejection."""
-    response = await client.get("/api/v1/finance/expenses", headers=_auth("staff"))
+    response = await client.get("/api/v1/finance/expenses", headers=_auth("finance_staff"))
     assert response.status_code == 200
+
+
+# --- Finance desk and marketing are separate roles -------------------------
+
+
+async def test_finance_staff_cannot_touch_marketing_campaigns(client) -> None:
+    response = await client.get("/api/v1/finance/campaigns", headers=_auth("finance_staff"))
+    assert response.status_code == 403
+
+
+async def test_marketing_cannot_read_the_ledger(client) -> None:
+    response = await client.get("/api/v1/finance/ledger-entries", headers=_auth("marketing"))
+    assert response.status_code == 403
+
+
+async def test_marketing_cannot_record_an_expense(client) -> None:
+    response = await client.post(
+        "/api/v1/finance/expenses",
+        json={"category": "misc", "amount_xaf": 1000, "description": "x"},
+        headers=_auth("marketing"),
+    )
+    assert response.status_code == 403
+
+
+async def test_marketing_can_list_campaigns(client) -> None:
+    """The other half of the split: marketing owns campaigns outright."""
+    response = await client.get("/api/v1/finance/campaigns", headers=_auth("marketing"))
+    assert response.status_code == 200
+
+
+async def test_lecturer_has_no_finance_access(client) -> None:
+    response = await client.get("/api/v1/finance/expenses", headers=_auth("lecturer"))
+    assert response.status_code == 403

@@ -20,7 +20,7 @@ from app.schemas import (
 
 router = APIRouter()
 
-_STAFF_ROLES = ("admin", "staff", "lecturer", "super_admin")
+_STAFF_ROLES = ("admin", "lecturer", "super_admin")
 
 
 @router.post(

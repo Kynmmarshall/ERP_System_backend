@@ -34,7 +34,9 @@ INSTITUTIONS = [
 SEED_USERS = [
     ("superadmin@ictuniversity.example", "Platform Super Admin", Role.SUPER_ADMIN, None),
     ("admin@ictuniversity.example", "ICT University Admin", Role.ADMIN, "ict-main"),
-    ("staff@ictuniversity.example", "ICT University Staff", Role.STAFF, "ict-main"),
+    ("lecturer@ictuniversity.example", "ICT University Lecturer", Role.LECTURER, "ict-main"),
+    ("finance@ictuniversity.example", "ICT University Finance", Role.FINANCE_STAFF, "ict-main"),
+    ("marketing@ictuniversity.example", "ICT University Marketing", Role.MARKETING, "ict-main"),
     ("student@ictuniversity.example", "ICT University Student", Role.STUDENT, "ict-main"),
 ]
 

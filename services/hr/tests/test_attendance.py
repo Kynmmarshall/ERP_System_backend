@@ -24,7 +24,7 @@ async def test_check_in_succeeds_with_a_freshly_issued_token(client) -> None:
     user_id = uuid.uuid4()
     employee = await seed_employee(institution_id, user_id=user_id)
     admin_token = mint_token(tenant_id=str(institution_id), role="admin")
-    staff_token = mint_token(tenant_id=str(institution_id), role="staff", sub=str(user_id))
+    staff_token = mint_token(tenant_id=str(institution_id), role="lecturer", sub=str(user_id))
 
     shift = await _create_shift(client, admin_token, employee.id)
     qr_response = await client.post(
@@ -49,7 +49,7 @@ async def test_duplicate_check_in_for_the_same_shift_is_rejected(client) -> None
     user_id = uuid.uuid4()
     employee = await seed_employee(institution_id, user_id=user_id)
     admin_token = mint_token(tenant_id=str(institution_id), role="admin")
-    staff_token = mint_token(tenant_id=str(institution_id), role="staff", sub=str(user_id))
+    staff_token = mint_token(tenant_id=str(institution_id), role="lecturer", sub=str(user_id))
 
     shift = await _create_shift(client, admin_token, employee.id)
     qr_response = await client.post(
@@ -79,7 +79,7 @@ async def test_reissuing_a_qr_token_invalidates_the_previous_one(client) -> None
     user_id = uuid.uuid4()
     employee = await seed_employee(institution_id, user_id=user_id)
     admin_token = mint_token(tenant_id=str(institution_id), role="admin")
-    staff_token = mint_token(tenant_id=str(institution_id), role="staff", sub=str(user_id))
+    staff_token = mint_token(tenant_id=str(institution_id), role="lecturer", sub=str(user_id))
 
     shift = await _create_shift(client, admin_token, employee.id)
     first_qr = await client.post(
@@ -109,7 +109,7 @@ async def test_check_in_rejects_a_shift_belonging_to_another_employee(client) ->
     employee = await seed_employee(institution_id, user_id=owner_user_id, email="owner@example.com")
     await seed_employee(institution_id, user_id=other_user_id, email="other@example.com")
     admin_token = mint_token(tenant_id=str(institution_id), role="admin")
-    other_staff_token = mint_token(tenant_id=str(institution_id), role="staff", sub=str(other_user_id))
+    other_staff_token = mint_token(tenant_id=str(institution_id), role="lecturer", sub=str(other_user_id))
 
     shift = await _create_shift(client, admin_token, employee.id)
     qr_response = await client.post(

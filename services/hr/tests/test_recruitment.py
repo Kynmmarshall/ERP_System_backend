@@ -17,7 +17,7 @@ async def test_admin_can_create_position(client) -> None:
 
 
 async def test_staff_cannot_create_position(client) -> None:
-    token = mint_token(role="staff")
+    token = mint_token(role="lecturer")
 
     response = await client.post(
         "/api/v1/hr/positions",
@@ -31,7 +31,7 @@ async def test_staff_cannot_create_position(client) -> None:
 async def test_staff_can_list_positions(client) -> None:
     institution_id = uuid.uuid4()
     await seed_position(institution_id)
-    token = mint_token(tenant_id=str(institution_id), role="staff")
+    token = mint_token(tenant_id=str(institution_id), role="lecturer")
 
     response = await client.get("/api/v1/hr/positions", headers={"Authorization": f"Bearer {token}"})
 
@@ -113,7 +113,7 @@ async def test_admin_can_list_employees(client) -> None:
 
 
 async def test_staff_cannot_list_employees(client) -> None:
-    token = mint_token(role="staff")
+    token = mint_token(role="lecturer")
 
     response = await client.get("/api/v1/hr/employees", headers={"Authorization": f"Bearer {token}"})
 

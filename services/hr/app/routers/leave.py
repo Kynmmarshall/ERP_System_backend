@@ -18,7 +18,7 @@ from app.schemas import (
 router = APIRouter()
 
 _HR_ADMIN_ROLES = ("admin", "super_admin")
-_STAFF_ROLES = ("admin", "staff", "lecturer", "finance_staff", "super_admin")
+_STAFF_ROLES = ("admin", "lecturer", "finance_staff", "marketing", "super_admin")
 
 
 async def _get_own_employee(session: AsyncSession, claims: dict) -> Employee:

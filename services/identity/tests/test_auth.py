@@ -98,7 +98,7 @@ async def test_me_returns_profile_scoped_to_own_tenant(client) -> None:
     # Staff, not admin: admin logins now require an MFA second factor (see
     # tests/test_rbac_mfa.py), and this test is about tenant scoping of /me,
     # not about the login flow.
-    user, institution = await _create_user(role=Role.STAFF, password="correct horse battery staple")
+    user, institution = await _create_user(role=Role.LECTURER, password="correct horse battery staple")
     login_response = await client.post(
         "/api/v1/auth/login", json={"email": user.email, "password": "correct horse battery staple"}
     )
@@ -110,7 +110,7 @@ async def test_me_returns_profile_scoped_to_own_tenant(client) -> None:
     body = response.json()
     assert body["id"] == str(user.id)
     assert body["institution_id"] == str(institution.id)
-    assert body["role"] == "staff"
+    assert body["role"] == "lecturer"
 
 
 async def test_me_rejects_tampered_token(client) -> None:
@@ -197,7 +197,7 @@ async def test_logout_revokes_refresh_session(client) -> None:
 
 
 async def test_internal_verify_sets_headers_for_gateway_auth_request(client) -> None:
-    user, institution = await _create_user(role=Role.STAFF, password="correct horse battery staple")
+    user, institution = await _create_user(role=Role.LECTURER, password="correct horse battery staple")
     login_response = await client.post(
         "/api/v1/auth/login", json={"email": user.email, "password": "correct horse battery staple"}
     )
@@ -208,7 +208,7 @@ async def test_internal_verify_sets_headers_for_gateway_auth_request(client) -> 
     assert response.status_code == 200
     assert response.headers["X-User-Id"] == str(user.id)
     assert response.headers["X-Tenant-Id"] == str(institution.id)
-    assert response.headers["X-Roles"] == "staff"
+    assert response.headers["X-Roles"] == "lecturer"
 
 
 async def test_internal_verify_rejects_missing_token(client) -> None:

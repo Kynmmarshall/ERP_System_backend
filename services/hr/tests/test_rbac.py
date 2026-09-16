@@ -30,7 +30,7 @@ async def test_staff_cannot_do_hr_admin_work(client) -> None:
         ("get", "/api/v1/hr/candidates"),
         ("get", "/api/v1/hr/payroll/schedules"),
     ):
-        response = await getattr(client, method)(path, headers=_auth("staff"))
+        response = await getattr(client, method)(path, headers=_auth("lecturer"))
         assert response.status_code == 403, f"{method.upper()} {path} should be 403 for staff"
 
 
@@ -44,7 +44,7 @@ async def test_admin_cannot_verify_a_payroll_schedule_only_super_admin_can(clien
 
 async def test_staff_cannot_approve_a_payroll_run(client) -> None:
     response = await client.post(
-        f"/api/v1/hr/payroll/runs/{uuid.uuid4()}/approve", headers=_auth("staff")
+        f"/api/v1/hr/payroll/runs/{uuid.uuid4()}/approve", headers=_auth("lecturer")
     )
     assert response.status_code == 403
 
@@ -77,5 +77,5 @@ async def test_unauthenticated_cannot_list_positions(client) -> None:
 
 async def test_staff_is_allowed_past_the_role_gate_on_positions(client) -> None:
     """Proves the 403s above are really about ROLE, not a blanket rejection."""
-    response = await client.get("/api/v1/hr/positions", headers=_auth("staff"))
+    response = await client.get("/api/v1/hr/positions", headers=_auth("lecturer"))
     assert response.status_code == 200

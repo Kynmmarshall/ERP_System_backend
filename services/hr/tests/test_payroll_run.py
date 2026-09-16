@@ -71,7 +71,7 @@ async def test_approving_a_run_backed_by_a_verified_schedule_succeeds(client) ->
     schedule = await seed_schedule_version(institution_id, is_verified=False)
     admin_token = mint_token(tenant_id=str(institution_id), role="admin", sub=str(admin_user_id))
     super_admin_token = mint_token(tenant_id=str(institution_id), role="super_admin")
-    employee_token = mint_token(tenant_id=str(institution_id), role="staff", sub=str(employee_user_id))
+    employee_token = mint_token(tenant_id=str(institution_id), role="lecturer", sub=str(employee_user_id))
 
     run_response = await client.post(
         "/api/v1/hr/payroll/runs",
@@ -106,7 +106,7 @@ async def test_staff_cannot_see_payslips_from_a_draft_run(client) -> None:
     await seed_employee(institution_id, user_id=employee_user_id)
     schedule = await seed_schedule_version(institution_id)
     admin_token = mint_token(tenant_id=str(institution_id), role="admin")
-    employee_token = mint_token(tenant_id=str(institution_id), role="staff", sub=str(employee_user_id))
+    employee_token = mint_token(tenant_id=str(institution_id), role="lecturer", sub=str(employee_user_id))
 
     await client.post(
         "/api/v1/hr/payroll/runs",

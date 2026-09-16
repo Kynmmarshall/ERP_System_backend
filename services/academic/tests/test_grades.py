@@ -9,7 +9,7 @@ async def _seed_offering_with_grade(client, *, score: float = 40):
     course = await seed_course(institution_id, program.id)
     instructor_id = uuid.uuid4()
     offering = await seed_course_offering(institution_id, course.id, term.id, instructor_id=instructor_id)
-    instructor_token = mint_token(sub=str(instructor_id), tenant_id=str(institution_id), role="staff")
+    instructor_token = mint_token(sub=str(instructor_id), tenant_id=str(institution_id), role="lecturer")
     student_id = uuid.uuid4()
     student_token = mint_token(sub=str(student_id), tenant_id=str(institution_id), role="student")
 
@@ -39,7 +39,7 @@ async def test_grade_out_of_range_is_rejected(client) -> None:
     course = await seed_course(institution_id, program.id)
     instructor_id = uuid.uuid4()
     offering = await seed_course_offering(institution_id, course.id, term.id, instructor_id=instructor_id)
-    instructor_token = mint_token(sub=str(instructor_id), tenant_id=str(institution_id), role="staff")
+    instructor_token = mint_token(sub=str(instructor_id), tenant_id=str(institution_id), role="lecturer")
 
     assessment_resp = await client.post(
         "/api/v1/academic/assessments",
@@ -222,7 +222,7 @@ async def test_other_student_cannot_appeal_someone_elses_grade(client) -> None:
 
 
 async def test_create_assessment_with_unknown_offering_is_rejected(client) -> None:
-    token = mint_token(tenant_id=str(uuid.uuid4()), role="staff")
+    token = mint_token(tenant_id=str(uuid.uuid4()), role="lecturer")
 
     response = await client.post(
         "/api/v1/academic/assessments",
@@ -238,7 +238,7 @@ async def test_non_owning_staff_cannot_create_assessment(client) -> None:
     program, term = await seed_program_and_term(institution_id)
     course = await seed_course(institution_id, program.id)
     offering = await seed_course_offering(institution_id, course.id, term.id, instructor_id=uuid.uuid4())
-    other_staff_token = mint_token(tenant_id=str(institution_id), role="staff")
+    other_staff_token = mint_token(tenant_id=str(institution_id), role="lecturer")
 
     response = await client.post(
         "/api/v1/academic/assessments",
@@ -255,7 +255,7 @@ async def test_list_assessments_for_offering(client) -> None:
     course = await seed_course(institution_id, program.id)
     instructor_id = uuid.uuid4()
     offering = await seed_course_offering(institution_id, course.id, term.id, instructor_id=instructor_id)
-    token = mint_token(sub=str(instructor_id), tenant_id=str(institution_id), role="staff")
+    token = mint_token(sub=str(instructor_id), tenant_id=str(institution_id), role="lecturer")
     await client.post(
         "/api/v1/academic/assessments",
         json={"course_offering_id": str(offering.id), "name": "Quiz"},
@@ -272,7 +272,7 @@ async def test_list_assessments_for_offering(client) -> None:
 
 
 async def test_enter_grades_with_unknown_assessment_is_rejected(client) -> None:
-    token = mint_token(tenant_id=str(uuid.uuid4()), role="staff")
+    token = mint_token(tenant_id=str(uuid.uuid4()), role="lecturer")
 
     response = await client.post(
         f"/api/v1/academic/assessments/{uuid.uuid4()}/grades",
@@ -284,7 +284,7 @@ async def test_enter_grades_with_unknown_assessment_is_rejected(client) -> None:
 
 
 async def test_publish_with_unknown_assessment_is_rejected(client) -> None:
-    token = mint_token(tenant_id=str(uuid.uuid4()), role="staff")
+    token = mint_token(tenant_id=str(uuid.uuid4()), role="lecturer")
 
     response = await client.post(
         f"/api/v1/academic/assessments/{uuid.uuid4()}/publish", headers={"Authorization": f"Bearer {token}"}

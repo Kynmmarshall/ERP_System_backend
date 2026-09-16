@@ -10,7 +10,7 @@ async def test_at_risk_status_is_unknown_with_no_data(client) -> None:
     course = await seed_course(institution_id, program.id)
     instructor_id = uuid.uuid4()
     offering = await seed_course_offering(institution_id, course.id, term.id, instructor_id=instructor_id)
-    instructor_token = mint_token(sub=str(instructor_id), tenant_id=str(institution_id), role="staff")
+    instructor_token = mint_token(sub=str(instructor_id), tenant_id=str(institution_id), role="lecturer")
 
     student_id = uuid.uuid4()
     enrollment = await seed_enrollment(institution_id, student_id, program.id, term.id)
@@ -40,7 +40,7 @@ async def test_at_risk_true_when_attendance_below_threshold(client) -> None:
     course = await seed_course(institution_id, program.id)
     instructor_id = uuid.uuid4()
     offering = await seed_course_offering(institution_id, course.id, term.id, instructor_id=instructor_id)
-    instructor_token = mint_token(sub=str(instructor_id), tenant_id=str(institution_id), role="staff")
+    instructor_token = mint_token(sub=str(instructor_id), tenant_id=str(institution_id), role="lecturer")
 
     student_id = uuid.uuid4()
     enrollment = await seed_enrollment(institution_id, student_id, program.id, term.id)
@@ -81,7 +81,7 @@ async def test_at_risk_true_when_latest_two_assessments_below_pass_threshold(cli
     course = await seed_course(institution_id, program.id)
     instructor_id = uuid.uuid4()
     offering = await seed_course_offering(institution_id, course.id, term.id, instructor_id=instructor_id)
-    instructor_token = mint_token(sub=str(instructor_id), tenant_id=str(institution_id), role="staff")
+    instructor_token = mint_token(sub=str(instructor_id), tenant_id=str(institution_id), role="lecturer")
     student_id = uuid.uuid4()
 
     for name, score in (("Quiz 1", 30), ("Quiz 2", 40)):

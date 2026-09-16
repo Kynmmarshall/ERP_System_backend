@@ -27,7 +27,7 @@ def mint_token(*, expires_delta: timedelta = timedelta(minutes=10), **overrides)
     claims = {
         "sub": str(uuid.uuid4()),
         "tenant_id": str(uuid.uuid4()),
-        "role": "staff",
+        "role": "lecturer",
         "iss": JWT_ISSUER,
         "aud": JWT_AUDIENCE,
         "iat": now,

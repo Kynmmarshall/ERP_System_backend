@@ -12,7 +12,7 @@ from app.summaries import generate_summary
 
 router = APIRouter()
 
-_STAFF_ROLES = ("admin", "staff", "finance_staff", "super_admin")
+_STAFF_ROLES = ("admin", "finance_staff", "super_admin")
 
 
 @router.get("/summaries", response_model=list[FinancialSummaryResponse])

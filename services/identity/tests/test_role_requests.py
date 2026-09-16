@@ -147,7 +147,7 @@ async def test_registering_as_student_raises_no_request(client, monkeypatch) -> 
 async def test_approving_a_request_elevates_the_user(client, monkeypatch) -> None:
     institution = await _registration_institution(monkeypatch)
     admin = await _admin_for(institution)
-    email = await _register(client, requested_role="staff")
+    email = await _register(client, requested_role="lecturer")
     token = await _admin_token(client, admin)
 
     listed = await client.get(
@@ -167,7 +167,7 @@ async def test_approving_a_request_elevates_the_user(client, monkeypatch) -> Non
     async with SessionFactory() as session:
         await set_platform_context(session)
         user = (await session.execute(select(User).where(User.email == email))).scalar_one()
-        assert user.role == Role.STAFF
+        assert user.role == Role.LECTURER
 
 
 async def test_rejecting_a_request_leaves_the_user_a_student(client, monkeypatch) -> None:
@@ -196,7 +196,7 @@ async def test_rejecting_a_request_leaves_the_user_a_student(client, monkeypatch
 async def test_a_decided_request_cannot_be_decided_again(client, monkeypatch) -> None:
     institution = await _registration_institution(monkeypatch)
     admin = await _admin_for(institution)
-    await _register(client, requested_role="staff")
+    await _register(client, requested_role="lecturer")
     token = await _admin_token(client, admin)
     headers = {"Authorization": f"Bearer {token}"}
     request_id = (await client.get("/api/v1/auth/role-requests", headers=headers)).json()[0]["id"]

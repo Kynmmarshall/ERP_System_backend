@@ -190,7 +190,7 @@ async def test_non_owning_staff_cannot_schedule_exam(client) -> None:
     program, term = await seed_program_and_term(institution_id)
     course = await seed_course(institution_id, program.id)
     offering = await seed_course_offering(institution_id, course.id, term.id, instructor_id=uuid.uuid4())
-    other_staff_token = mint_token(tenant_id=str(institution_id), role="staff")
+    other_staff_token = mint_token(tenant_id=str(institution_id), role="lecturer")
     starts, ends = _slot(0)
 
     response = await client.post(

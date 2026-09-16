@@ -112,9 +112,9 @@ async def test_super_admin_login_also_requires_mfa(client) -> None:
 
 
 async def test_student_and_staff_login_does_not_require_mfa(client) -> None:
-    _, users = await _institution_with_users(Role.STUDENT, Role.STAFF)
+    _, users = await _institution_with_users(Role.STUDENT, Role.LECTURER)
 
-    for role in (Role.STUDENT, Role.STAFF):
+    for role in (Role.STUDENT, Role.LECTURER):
         response = await client.post(
             "/api/v1/auth/login", json={"email": users[role].email, "password": _PASSWORD}
         )
@@ -223,8 +223,8 @@ async def test_student_cannot_list_users(client) -> None:
 
 
 async def test_staff_cannot_list_users(client) -> None:
-    _, users = await _institution_with_users(Role.STAFF)
-    token = await _login_without_mfa(client, users[Role.STAFF])
+    _, users = await _institution_with_users(Role.LECTURER)
+    token = await _login_without_mfa(client, users[Role.LECTURER])
 
     response = await client.get("/api/v1/auth/users", headers={"Authorization": f"Bearer {token}"})
 
@@ -255,20 +255,20 @@ async def test_admin_can_promote_a_student_to_staff(client) -> None:
 
     response = await client.patch(
         f"/api/v1/auth/users/{users[Role.STUDENT].id}/role",
-        json={"role": "staff"},
+        json={"role": "lecturer"},
         headers={"Authorization": f"Bearer {token}"},
     )
 
     assert response.status_code == 200
-    assert response.json()["role"] == "staff"
+    assert response.json()["role"] == "lecturer"
 
 
 async def test_student_cannot_change_anyone_role(client) -> None:
-    _, users = await _institution_with_users(Role.STUDENT, Role.STAFF)
+    _, users = await _institution_with_users(Role.STUDENT, Role.LECTURER)
     token = await _login_without_mfa(client, users[Role.STUDENT])
 
     response = await client.patch(
-        f"/api/v1/auth/users/{users[Role.STAFF].id}/role",
+        f"/api/v1/auth/users/{users[Role.LECTURER].id}/role",
         json={"role": "admin"},
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -323,7 +323,7 @@ async def test_admin_cannot_change_role_of_user_in_another_institution(client) -
 
     response = await client.patch(
         f"/api/v1/auth/users/{users_b[Role.STUDENT].id}/role",
-        json={"role": "staff"},
+        json={"role": "lecturer"},
         headers={"Authorization": f"Bearer {token}"},
     )
 

@@ -22,7 +22,7 @@ from app.schemas import (
 
 router = APIRouter()
 
-_STAFF_ROLES = ("admin", "staff", "lecturer", "super_admin")
+_STAFF_ROLES = ("admin", "lecturer", "super_admin")
 
 
 async def _get_offering_or_404(session: AsyncSession, course_offering_id: uuid.UUID) -> CourseOffering:

@@ -131,7 +131,7 @@ async def test_staff_can_enroll_a_specific_student(client) -> None:
     institution_id = uuid.uuid4()
     student_id = uuid.uuid4()
     program, term = await _seed_program_and_term(institution_id)
-    token = _mint_token(sub=str(uuid.uuid4()), tenant_id=str(institution_id), role="staff")
+    token = _mint_token(sub=str(uuid.uuid4()), tenant_id=str(institution_id), role="lecturer")
 
     response = await client.post(
         "/api/v1/academic/enrollments",
@@ -150,7 +150,7 @@ async def test_staff_can_enroll_a_specific_student(client) -> None:
 async def test_staff_enrollment_without_student_id_is_rejected(client) -> None:
     institution_id = uuid.uuid4()
     program, term = await _seed_program_and_term(institution_id)
-    token = _mint_token(sub=str(uuid.uuid4()), tenant_id=str(institution_id), role="staff")
+    token = _mint_token(sub=str(uuid.uuid4()), tenant_id=str(institution_id), role="lecturer")
 
     response = await client.post(
         "/api/v1/academic/enrollments",

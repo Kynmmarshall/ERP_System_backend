@@ -6,7 +6,7 @@ from tests.helpers import mint_token, seed_course, seed_course_offering, seed_en
 async def test_staff_can_create_course(client) -> None:
     institution_id = uuid.uuid4()
     program, _ = await seed_program_and_term(institution_id)
-    token = mint_token(tenant_id=str(institution_id), role="staff")
+    token = mint_token(tenant_id=str(institution_id), role="lecturer")
 
     response = await client.post(
         "/api/v1/academic/courses",
@@ -39,7 +39,7 @@ async def test_prerequisite_cycle_is_rejected(client) -> None:
     program, _ = await seed_program_and_term(institution_id)
     course_a = await seed_course(institution_id, program.id)
     course_b = await seed_course(institution_id, program.id)
-    token = mint_token(tenant_id=str(institution_id), role="staff")
+    token = mint_token(tenant_id=str(institution_id), role="lecturer")
 
     # A requires B
     first = await client.post(
@@ -62,7 +62,7 @@ async def test_course_cannot_be_its_own_prerequisite(client) -> None:
     institution_id = uuid.uuid4()
     program, _ = await seed_program_and_term(institution_id)
     course = await seed_course(institution_id, program.id)
-    token = mint_token(tenant_id=str(institution_id), role="staff")
+    token = mint_token(tenant_id=str(institution_id), role="lecturer")
 
     response = await client.post(
         f"/api/v1/academic/courses/{course.id}/prerequisites",
@@ -78,7 +78,7 @@ async def test_staff_can_create_course_offering(client) -> None:
     program, term = await seed_program_and_term(institution_id)
     course = await seed_course(institution_id, program.id)
     instructor_id = uuid.uuid4()
-    token = mint_token(tenant_id=str(institution_id), role="staff")
+    token = mint_token(tenant_id=str(institution_id), role="lecturer")
 
     response = await client.post(
         "/api/v1/academic/course-offerings",
@@ -102,7 +102,7 @@ async def test_registration_blocked_by_unmet_prerequisite(client) -> None:
     prerequisite_course = await seed_course(institution_id, program.id)
     main_course = await seed_course(institution_id, program.id)
     instructor_id = uuid.uuid4()
-    staff_token = mint_token(tenant_id=str(institution_id), role="staff")
+    staff_token = mint_token(tenant_id=str(institution_id), role="lecturer")
 
     await client.post(
         f"/api/v1/academic/courses/{main_course.id}/prerequisites",
@@ -131,7 +131,7 @@ async def test_registration_succeeds_once_prerequisite_is_passed(client) -> None
     prerequisite_course = await seed_course(institution_id, program.id)
     main_course = await seed_course(institution_id, program.id)
     instructor_id = uuid.uuid4()
-    staff_token = mint_token(tenant_id=str(institution_id), role="staff")
+    staff_token = mint_token(tenant_id=str(institution_id), role="lecturer")
 
     await client.post(
         f"/api/v1/academic/courses/{main_course.id}/prerequisites",
@@ -148,7 +148,7 @@ async def test_registration_succeeds_once_prerequisite_is_passed(client) -> None
     student_token = mint_token(sub=str(student_id), tenant_id=str(institution_id), role="student")
 
     # give the student a published passing grade in the prerequisite course
-    instructor_token = mint_token(sub=str(instructor_id), tenant_id=str(institution_id), role="staff")
+    instructor_token = mint_token(sub=str(instructor_id), tenant_id=str(institution_id), role="lecturer")
     assessment_resp = await client.post(
         "/api/v1/academic/assessments",
         json={"course_offering_id": str(prerequisite_offering.id), "name": "Final", "max_score": 100},
@@ -219,7 +219,7 @@ async def test_duplicate_registration_is_rejected(client) -> None:
 
 
 async def test_create_course_with_unknown_program_is_rejected(client) -> None:
-    token = mint_token(tenant_id=str(uuid.uuid4()), role="staff")
+    token = mint_token(tenant_id=str(uuid.uuid4()), role="lecturer")
 
     response = await client.post(
         "/api/v1/academic/courses",
@@ -251,7 +251,7 @@ async def test_prerequisite_on_unknown_course_is_rejected(client) -> None:
     institution_id = uuid.uuid4()
     program, _ = await seed_program_and_term(institution_id)
     course = await seed_course(institution_id, program.id)
-    token = mint_token(tenant_id=str(institution_id), role="staff")
+    token = mint_token(tenant_id=str(institution_id), role="lecturer")
 
     response = await client.post(
         f"/api/v1/academic/courses/{uuid.uuid4()}/prerequisites",
@@ -267,7 +267,7 @@ async def test_list_prerequisites_returns_created_edge(client) -> None:
     program, _ = await seed_program_and_term(institution_id)
     course_a = await seed_course(institution_id, program.id)
     course_b = await seed_course(institution_id, program.id)
-    token = mint_token(tenant_id=str(institution_id), role="staff")
+    token = mint_token(tenant_id=str(institution_id), role="lecturer")
     await client.post(
         f"/api/v1/academic/courses/{course_a.id}/prerequisites",
         json={"prerequisite_course_id": str(course_b.id)},
@@ -285,7 +285,7 @@ async def test_list_prerequisites_returns_created_edge(client) -> None:
 async def test_course_offering_with_unknown_course_is_rejected(client) -> None:
     institution_id = uuid.uuid4()
     _, term = await seed_program_and_term(institution_id)
-    token = mint_token(tenant_id=str(institution_id), role="staff")
+    token = mint_token(tenant_id=str(institution_id), role="lecturer")
 
     response = await client.post(
         "/api/v1/academic/course-offerings",
@@ -305,7 +305,7 @@ async def test_course_offering_with_unknown_term_is_rejected(client) -> None:
     institution_id = uuid.uuid4()
     program, _ = await seed_program_and_term(institution_id)
     course = await seed_course(institution_id, program.id)
-    token = mint_token(tenant_id=str(institution_id), role="staff")
+    token = mint_token(tenant_id=str(institution_id), role="lecturer")
 
     response = await client.post(
         "/api/v1/academic/course-offerings",
@@ -326,7 +326,7 @@ async def test_duplicate_course_offering_for_same_term_is_rejected(client) -> No
     program, term = await seed_program_and_term(institution_id)
     course = await seed_course(institution_id, program.id)
     await seed_course_offering(institution_id, course.id, term.id, instructor_id=uuid.uuid4())
-    token = mint_token(tenant_id=str(institution_id), role="staff")
+    token = mint_token(tenant_id=str(institution_id), role="lecturer")
 
     response = await client.post(
         "/api/v1/academic/course-offerings",
@@ -358,7 +358,7 @@ async def test_staff_cannot_register_for_a_course(client) -> None:
     program, term = await seed_program_and_term(institution_id)
     course = await seed_course(institution_id, program.id)
     offering = await seed_course_offering(institution_id, course.id, term.id, instructor_id=uuid.uuid4())
-    token = mint_token(tenant_id=str(institution_id), role="staff")
+    token = mint_token(tenant_id=str(institution_id), role="lecturer")
 
     response = await client.post(
         "/api/v1/academic/course-registrations",
@@ -416,7 +416,7 @@ async def test_list_course_registrations_staff_sees_all_for_offering(client) -> 
         headers={"Authorization": f"Bearer {student_token}"},
     )
 
-    staff_token = mint_token(tenant_id=str(institution_id), role="staff")
+    staff_token = mint_token(tenant_id=str(institution_id), role="lecturer")
     response = await client.get(
         f"/api/v1/academic/course-registrations?course_offering_id={offering.id}",
         headers={"Authorization": f"Bearer {staff_token}"},

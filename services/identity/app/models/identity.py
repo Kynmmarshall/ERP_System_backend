@@ -12,11 +12,9 @@ from app.models.base import Base
 class Role(str, enum.Enum):
     SUPER_ADMIN = "super_admin"
     ADMIN = "admin"
-    # STAFF predates the split and still grants both workspaces; LECTURER and
-    # FINANCE_STAFF are the narrower roles new accounts should get.
-    STAFF = "staff"
     LECTURER = "lecturer"
     FINANCE_STAFF = "finance_staff"
+    MARKETING = "marketing"
     STUDENT = "student"
 
 
