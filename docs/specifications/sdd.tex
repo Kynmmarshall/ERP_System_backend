@@ -22,7 +22,7 @@ Figures distinguish code-backed structures from conceptual scaling and recovery 
 \begin{tabularx}{\textwidth}{@{}L{27mm}Y L{36mm}@{}}
 \toprule Boundary & Responsibility & Technology / owned data\\\midrule
 Web frontend & Session UX, route shell, student academics/payments, staff self-service & React 19, TypeScript, Vite; no private database.\\
-Identity & Users, tenants/campuses, Argon2 login, RS256 signing, refresh families & FastAPI; \code{identity_db}.\\
+Identity & Users, tenants, Argon2 login, RS256 signing, refresh families & FastAPI; \code{identity_db}.\\
 Academic & Enrollment, curriculum, grades/appeals, attendance, exams/reports & FastAPI + outbox worker; \code{academic_db}.\\
 Finance & Fees, invoices, payments/ledger, expenses, campaign ROI and summaries & FastAPI + combined worker; \code{finance_db}.\\
 HR & Recruitment, employee records, leave, shifts, payroll, assets & FastAPI; \code{hr_db}.\\
@@ -122,7 +122,7 @@ Per-request dependencies set \code{app.current_institution_id} and
 \code{app.is_platform_admin} using transaction-local settings. UUID values are
 validated before the PostgreSQL SET statement. Forced RLS applies to scoped business
 tables and Identity users/refresh sessions, including service-owned tables.
-Identity institution/campus metadata is not RLS-enabled. Bootstrap grants database ownership
+Identity institution metadata is not RLS-enabled. Bootstrap grants database ownership
 to the service role and revokes public connection access. A separate migration owner
 and non-owner runtime role are not implemented by the current bootstrap.
 Outbox/inbox internal tables intentionally do not follow ordinary tenant RLS.
@@ -140,7 +140,7 @@ AUTH-01--08 and INT-02 map to Figures~\ref{fig:10-session-sequence} and
 \clearpage
 \section{Academic domain and asynchronous billing design}
 \subsection{Enrollment and curriculum}
-An enrollment links a student UUID with program, term and campus context.
+An enrollment links a student UUID with program and term context.
 Only accepted enrollment status exists; there is no submitted/admissions approval
 state machine. Student/program/term uniqueness prevents duplicate records. The HTTP
 transaction inserts both enrollment and outbox event, then commits without calling
@@ -382,7 +382,7 @@ DD-13 & Explicit partial delivery & Placeholder pages communicate absence rather
 \end{longtable}\normalsize
 
 \subsection{Normalization and denormalization}
-Institution, campus and user facts are separated in Identity. Academic separates
+Institution and user facts are separated in Identity. Academic separates
 program, course and term from offering, enrollment, registration and assessment.
 Prerequisite edges resolve the course-to-course relationship without repeated lists.
 Finance separates fee configuration from issued invoices and payment attempts.
@@ -401,7 +401,7 @@ functional-dependency proof or EXPLAIN comparison is supplied in the baseline.
 \subsection{Key constraints and ownership exceptions}
 \begin{itemize}
 \item \textbf{Identity:} institution slug, user email and refresh-token hash uniqueness;
-nullable user institution/campus for platform use.
+nullable user institution for platform use.
 \item \textbf{Academic:} enrollment student/program/term; course program/code within institution;
 prerequisite edge; offering course/term; grade assessment/student; exam one-per-offering.
 \item \textbf{Finance:} fee tenant/program/term; invoice tenant/enrollment; inbox event primary
@@ -411,7 +411,7 @@ summary tenant/period/version.
 Some same-database identifiers intentionally lack foreign keys, including payslip employee,
 asset-movement employee and receipt references.
 \end{itemize}
-Cross-service user/student/campus/program/enrollment IDs remain opaque UUIDs.
+Cross-service user/student/program/enrollment IDs remain opaque UUIDs.
 An ERD dotted relationship is a logical lookup, not a database-enforced FK.
 The generated dictionary records only declared column metadata; migrations remain
 authoritative for composite/partial indexes and RLS policies.
@@ -517,8 +517,7 @@ manual review. No fresh E2E run is claimed by this documentation build.
     "enrollment_id": "<UUID>",
     "student_id": "<UUID>",
     "program_id": "<UUID>",
-    "term_id": "<UUID>",
-    "campus_id": "<UUID>"
+    "term_id": "<UUID>"
   }
 }
 \end{lstlisting}
@@ -541,7 +540,7 @@ signed. Ordering across workers is not a global business guarantee.
 POST /api/v1/academic/enrollments
 Authorization: Bearer <access-token>
 Content-Type: application/json
-{"program_id":"<UUID>","term_id":"<UUID>","campus_id":"<UUID>"}
+{"program_id":"<UUID>","term_id":"<UUID>"}
 
 POST /api/v1/finance/invoices/<UUID>/payment-intents
 {"payer_msisdn":"<synthetic test number>"}
@@ -596,7 +595,7 @@ routing and the broker-mediated cross-service flow are explicit.}
 adapter, cache and token responsibilities reflect the React source.}
 \diagram[large-wide]{05-domain-classes}{Implementation class collaboration}{Real protocol,
 ORM, dataclass and module-function concepts; no invented shared service framework.}
-\diagram{06-erd-identity}{Identity entity relationship model}{Nullable tenant/campus
+\diagram{06-erd-identity}{Identity entity relationship model}{Nullable tenant
 context and refresh-family storage are shown with local foreign keys.}
 \diagram{07-erd-academic}{Academic entity relationship model}{Curriculum, enrollment,
 teaching records and outbox are distinct; dotted outbox linkage is not a foreign key.}

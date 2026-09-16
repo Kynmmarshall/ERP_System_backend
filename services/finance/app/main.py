@@ -54,6 +54,5 @@ async def me(claims: dict = Depends(get_current_claims)) -> PrincipalResponse:
     return PrincipalResponse(
         user_id=claims["sub"],
         tenant_id=claims.get("tenant_id"),
-        campus_id=claims.get("campus_id"),
         role=claims.get("role", ""),
     )

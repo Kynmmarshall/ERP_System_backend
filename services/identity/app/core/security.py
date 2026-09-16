@@ -40,14 +40,12 @@ def issue_access_token(
     *,
     user_id: uuid.UUID,
     institution_id: uuid.UUID | None,
-    campus_id: uuid.UUID | None,
     role: str,
 ) -> str:
     now = datetime.now(UTC)
     claims = {
         "sub": str(user_id),
         "tenant_id": str(institution_id) if institution_id else None,
-        "campus_id": str(campus_id) if campus_id else None,
         "role": role,
         "iss": JWT_ISSUER,
         "aud": JWT_AUDIENCE,

@@ -63,7 +63,6 @@ class MeResponse(BaseModel):
     full_name: str
     role: Role
     institution_id: uuid.UUID | None
-    campus_id: uuid.UUID | None
 
 
 class UserSummaryResponse(BaseModel):
@@ -77,7 +76,6 @@ class UserSummaryResponse(BaseModel):
     full_name: str
     role: Role
     is_active: bool
-    campus_id: uuid.UUID | None
     created_at: datetime
 
 

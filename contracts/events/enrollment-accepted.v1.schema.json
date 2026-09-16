@@ -7,15 +7,13 @@
     "enrollment_id",
     "student_id",
     "program_id",
-    "term_id",
-    "campus_id"
+    "term_id"
   ],
   "properties": {
     "enrollment_id": { "type": "string", "format": "uuid" },
     "student_id": { "type": "string", "format": "uuid" },
     "program_id": { "type": "string", "format": "uuid" },
-    "term_id": { "type": "string", "format": "uuid" },
-    "campus_id": { "type": "string", "format": "uuid" }
+    "term_id": { "type": "string", "format": "uuid" }
   },
   "additionalProperties": false
 }

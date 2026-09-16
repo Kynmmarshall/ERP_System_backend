@@ -11,7 +11,6 @@ class PrincipalResponse(BaseModel):
 
     user_id: str
     tenant_id: str | None
-    campus_id: str | None
     role: str
 
 

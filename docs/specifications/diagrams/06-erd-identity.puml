@@ -7,16 +7,9 @@ entity "institutions" as institution {
   name
   slug : unique
 }
-entity "campuses" as campus {
-  * id : UUID <<PK>>
-  * institution_id : UUID <<FK>>
-  --
-  name
-}
 entity "users" as user {
   * id : UUID <<PK>>
   institution_id : UUID <<FK, nullable>>
-  campus_id : UUID <<FK, nullable>>
   --
   email : unique
   password_hash
@@ -36,16 +29,37 @@ entity "refresh_sessions" as refresh {
   expires_at
   revoked_at
 }
+entity "mfa_challenges" as mfa {
+  * id : UUID <<PK>>
+  * user_id : UUID <<FK>>
+  institution_id : UUID <<FK, nullable>>
+  --
+  code_hash
+  attempts
+  expires_at
+  consumed_at
+}
+entity "role_requests" as rolereq {
+  * id : UUID <<PK>>
+  * user_id : UUID <<FK>>
+  institution_id : UUID <<FK, nullable>>
+  decided_by : UUID <<FK, nullable>>
+  --
+  requested_role : enum
+  status : enum
+  justification
+  decided_at
+}
 institution |o--o{ user : tenant
-institution ||--o{ campus : contains
-campus |o--o{ user : assigned campus
 user ||--o{ refresh : rotates sessions
 institution |o--o{ refresh : tenant
+user ||--o{ mfa : login challenges
+user ||--o{ rolereq : applies for a role
 note bottom of user
 Role: super_admin, admin, staff, student.
 Tenantless platform accounts are possible.
-RLS: users and refresh_sessions only.
-Institution/campus metadata has no RLS policy.
+RLS: users, refresh_sessions, mfa_challenges, role_requests.
+Institution metadata has no RLS policy.
 External modules store user UUIDs without FK access.
 See generated dictionary for exact field types/defaults.
 end note

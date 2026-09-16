@@ -22,7 +22,7 @@ ops --> ci : Approve release
 ci --> erp : Pinned image deployment
 erp ..> backup : Planned encrypted backup + WAL
 note bottom of erp
-Institution = tenant; campus is not a separate tenant.
+Institution = tenant; one institution per deployment.
 No cross-service database queries.
 One local asynchronous workflow: enrollment -> invoice.
 end note

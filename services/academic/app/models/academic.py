@@ -42,17 +42,10 @@ class Term(Base):
 
 
 class Enrollment(Base):
-    """campus_id is an opaque reference to identity's Campus row - academic
-    does not (and cannot, database-per-service) validate it exists; it is
-    trusted client input, unlike program_id/term_id which ARE this service's
-    own rows and are validated.
-    """
-
     __tablename__ = "enrollments"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     institution_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
-    campus_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     student_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     program_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("programs.id", ondelete="RESTRICT"), nullable=False

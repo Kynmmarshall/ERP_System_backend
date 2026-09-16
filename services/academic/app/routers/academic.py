@@ -70,7 +70,6 @@ async def create_enrollment(
 
     enrollment = Enrollment(
         institution_id=institution_id,
-        campus_id=payload.campus_id,
         student_id=student_id,
         program_id=program.id,
         term_id=term.id,
@@ -90,7 +89,6 @@ async def create_enrollment(
                 "student_id": str(student_id),
                 "program_id": str(program.id),
                 "term_id": str(term.id),
-                "campus_id": str(payload.campus_id),
             },
         )
     )

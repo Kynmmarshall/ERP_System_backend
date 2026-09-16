@@ -54,7 +54,7 @@ class CoursePrerequisite(Base):
 class CourseOffering(Base):
     """A course as taught in a specific term by a specific instructor - NOT
     the exam time (see ExamSchedule). instructor_id is an opaque identity
-    user id, trusted the same way Enrollment.campus_id is.
+    user id, trusted the same way Enrollment.student_id is.
     """
 
     __tablename__ = "course_offerings"

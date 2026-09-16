@@ -39,7 +39,6 @@ def _make_envelope(*, institution_id: uuid.UUID, program_id: uuid.UUID, term_id:
         "student_id": str(uuid.uuid4()),
         "program_id": str(program_id),
         "term_id": str(term_id),
-        "campus_id": str(uuid.uuid4()),
     }
     data.update(data_overrides)
     return {

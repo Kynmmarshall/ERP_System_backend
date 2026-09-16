@@ -14,7 +14,7 @@ entity "terms" as t {
 entity "enrollments" as e {
   * id : UUID <<PK>>
   program_id / term_id : <<FK>>
-  institution_id / campus_id / student_id
+  institution_id / student_id
   status : accepted
 }
 entity "courses" as c {
@@ -101,6 +101,6 @@ e ..> ob : atomic write\npayload link, NOT FK
 note bottom of ob
 Tenant-owned tables carry institution_id.
 Outbox is internal plumbing, intentionally without RLS.
-Student/instructor/campus IDs are external opaque references.
+Student/instructor IDs are external opaque references.
 end note
 @enduml

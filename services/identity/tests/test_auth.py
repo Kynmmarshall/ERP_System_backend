@@ -13,7 +13,7 @@ from app.core.db import SessionFactory
 from app.core.security import hash_password, issue_access_token
 from app.core.tenant_context import set_platform_context
 from app.main import app
-from app.models.identity import Campus, Institution, Role, User
+from app.models.identity import Institution, Role, User
 
 
 @pytest.fixture
@@ -32,12 +32,8 @@ async def _create_user(
         institution = Institution(name=f"Test Institution {unique}", slug=f"test-{unique}")
         session.add(institution)
         await session.flush()
-        campus = Campus(institution_id=institution.id, name="Main")
-        session.add(campus)
-        await session.flush()
         user = User(
             institution_id=institution.id,
-            campus_id=campus.id,
             email=f"user-{unique}@example.com",
             full_name="Test User",
             role=role,
@@ -120,7 +116,7 @@ async def test_me_returns_profile_scoped_to_own_tenant(client) -> None:
 async def test_me_rejects_tampered_token(client) -> None:
     user, _ = await _create_user()
     token = issue_access_token(
-        user_id=user.id, institution_id=user.institution_id, campus_id=user.campus_id, role=user.role.value
+        user_id=user.id, institution_id=user.institution_id, role=user.role.value
     )
     tampered = token[:-2] + ("aa" if token[-2:] != "aa" else "bb")
 
@@ -141,7 +137,6 @@ async def test_me_rejects_expired_token(client) -> None:
         {
             "sub": str(user.id),
             "tenant_id": str(user.institution_id),
-            "campus_id": None,
             "role": user.role.value,
             "iss": JWT_ISSUER,
             "aud": JWT_AUDIENCE,
@@ -236,7 +231,7 @@ async def test_users_from_different_institutions_are_isolated_by_rls() -> None:
         assert result_own.scalar_one_or_none() is not None
 
 
-async def _seed_registration_institution(monkeypatch, *, with_campus: bool = True) -> tuple[Institution, Campus | None]:
+async def _seed_registration_institution(monkeypatch) -> Institution:
     """Points self-registration at a fresh, isolated institution so
     registration tests never depend on (or collide with) real seed data."""
     from app.core.config import settings
@@ -246,19 +241,14 @@ async def _seed_registration_institution(monkeypatch, *, with_campus: bool = Tru
         await set_platform_context(session)
         institution = Institution(name=f"Registration Test {unique}", slug=f"register-test-{unique}")
         session.add(institution)
-        await session.flush()
-        campus = None
-        if with_campus:
-            campus = Campus(institution_id=institution.id, name=f"Registration Test {unique} Main Campus")
-            session.add(campus)
         await session.commit()
 
     monkeypatch.setattr(settings, "self_registration_institution_slug", institution.slug)
-    return institution, campus
+    return institution
 
 
 async def test_register_creates_student_account_and_logs_in(client, monkeypatch) -> None:
-    institution, campus = await _seed_registration_institution(monkeypatch)
+    institution = await _seed_registration_institution(monkeypatch)
     unique = uuid.uuid4().hex[:10]
     email = f"new-student-{unique}@example.com"
 
@@ -279,27 +269,6 @@ async def test_register_creates_student_account_and_logs_in(client, monkeypatch)
         user = result.scalar_one()
         assert user.role == Role.STUDENT
         assert user.institution_id == institution.id
-        assert campus is not None
-        assert user.campus_id == campus.id
-
-
-async def test_register_leaves_campus_unset_when_institution_has_none(client, monkeypatch) -> None:
-    institution, _ = await _seed_registration_institution(monkeypatch, with_campus=False)
-    unique = uuid.uuid4().hex[:10]
-    email = f"no-campus-{unique}@example.com"
-
-    response = await client.post(
-        "/api/v1/auth/register",
-        json={"email": email, "password": "a-strong-password", "full_name": "No Campus"},
-    )
-
-    assert response.status_code == 201
-    async with SessionFactory() as session:
-        await set_platform_context(session)
-        result = await session.execute(select(User).where(User.email == email))
-        user = result.scalar_one()
-        assert user.institution_id == institution.id
-        assert user.campus_id is None
 
 
 async def test_register_ignores_client_supplied_role(client, monkeypatch) -> None:

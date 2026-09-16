@@ -87,8 +87,7 @@ Roles are \code{super_admin}, \code{admin}, \code{staff} and \code{student}.
 not additional implemented role enum values. Staff privileges are broad in some
 modules; fine-grained departmental permissions are not implied. An HR employee is a
 separate domain record whose optional identity link is necessary for self-service.
-An institution is the tenant boundary; campus is descriptive context, not a proven
-separate campus-level authorization boundary.
+An institution is the tenant boundary and the only tenancy concept in the system.
 
 \subsection{Operating assumptions}
 The reviewed backend targets Python 3.13 container images, PostgreSQL 17 and
@@ -149,12 +148,12 @@ Tenant-owned rows carry \code{institution_id}. Each service validates JWT
 claims itself, and sets transaction-local database context. Identity credential
 resolution and finance background tasks deliberately use platform context.
 Outbox/inbox tables are outside ordinary tenant RLS. Identity enables RLS on
-users and refresh sessions, not on institution/campus metadata.
+users and refresh sessions, not on institution metadata.
 The bootstrap makes service roles database owners; migrations use forced RLS.
 This baseline must not be described as separate non-owner runtime and migration
 credentials.
 
-User, campus, student, program and enrollment identifiers crossing service
+User, student, program and enrollment identifiers crossing service
 boundaries are opaque UUID references, not distributed foreign keys. Existence and
 lifecycle consistency are therefore not guaranteed by the receiving database.
 Institution scope is mandatory for ordinary mutations. Time instants should be
@@ -326,7 +325,7 @@ uses the normalized lowercase value.}
 {services/identity/app/routers/auth.py}
 \req{AUTH-02}{Token lifetime and claims}{\statusI}{Must}
 {Access tokens shall have a default lifetime of ten minutes and carry identity,
-role and tenant/campus context; resource services shall independently verify signatures,
+role and tenant context; resource services shall independently verify signatures,
 issuer, audience and expiry.}
 {Expired, wrong-key, wrong-issuer and wrong-audience tokens return 401 at protected
 routes. A spoofed tenant header shall not override a valid token's tenant.}
@@ -366,7 +365,7 @@ scoped business and Identity user/session tables; service database roles shall n
 connect to other service databases.}
 {A tenant-A request cannot read/write tenant-B rows in protected tables; each runtime
 role fails a connection attempt to another service database. Outbox/inbox tables,
-Identity institution/campus metadata and platform-context flows are explicit exceptions.}
+Identity institution metadata and platform-context flows are explicit exceptions.}
 {tests/integration/test_db_isolation.py}
 \req{AUTH-08}{Production session configuration}{\statusP}{Must}
 {Production browser sessions shall use HTTPS and Secure, HttpOnly, SameSite refresh
@@ -395,7 +394,7 @@ scripts shall not be presented as complete CRUD APIs.}
 Acceptance shall atomically persist the enrollment and a billing event outbox row.}
 {Valid same-tenant program/term returns 201; missing references return 404; repeat
 student/program/term returns 409 in the normal duplicate path. Rolled-back acceptance
-shall leave neither record. Campus/student external existence is not cross-database verified.}
+shall leave neither record. Student external existence is not cross-database verified.}
 {services/academic/app/routers/academic.py}
 \req{ACAD-03}{Prerequisite graph}{\statusI}{Must}
 {Course prerequisites shall reject self-reference and cycles before insertion.}
@@ -727,7 +726,7 @@ Refresh is attempted once per failed request sequence and deduplicated within on
 \req{UI-02}{Live student academic workflow}{\statusI}{Must}
 {Students shall enroll, observe pending invoice creation, register compatible offerings,
 view own published grades, submit appeals and download academic PDFs.}
-{A student without campus context sees an explicit error. A new enrollment invalidates
+{A new enrollment invalidates
 the enrollment query and polls its invoice every two seconds until found. Registration
 refreshes own registrations and risk data. Instructor controls are not present.}
 {../ERP_System/src/features/academic/EnrollmentPage.tsx}
@@ -786,7 +785,7 @@ of issued access tokens on logout.
 \textbf{Related:} ACAD-02, FIN-01--03, INT-03.
 \textbf{Precondition:} valid program/term and separately configured matching fee.
 \begin{enumerate}
-\item Caller chooses program/term/campus; staff supplies a student ID while student identity
+\item Caller chooses program/term; staff supplies a student ID while student identity
 is derived from the token.
 \item Academic validates local references and duplicates, then commits enrollment and outbox.
 \item HTTP 201 confirms academic acceptance without waiting for Finance.
@@ -970,7 +969,6 @@ to implemented roles; target UI and provisioning work is identified separately.}
 \begin{tabularx}{\textwidth}{@{}L{31mm}Y@{}}
 \toprule Term & Meaning in this project\\\midrule
 Tenant / institution & Primary data isolation boundary carried in verified claims.\\
-Campus & An institution location referenced by identity/enrollment; not a separate tenant.\\
 Offering & Course taught in a term with an assigned instructor, room and stored capacity.\\
 Enrollment / registration & Enrollment admits a student to program/term; registration selects an offering.\\
 Outbox / inbox & Producer transaction record / consumer duplicate-event record.\\

@@ -18,7 +18,7 @@ class Employee(Base):
     """user_id is an opaque, nullable identity user reference - a hired
     candidate may not have a provisioned login yet, matching database-per-
     service isolation (no cross-service FK, same as academic/finance's
-    opaque campus_id/student_id).
+    opaque student_id).
     """
 
     __tablename__ = "employees"

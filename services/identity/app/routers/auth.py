@@ -25,7 +25,6 @@ from app.core.security import (
 from app.core.tenant_context import set_platform_context, set_tenant_context
 from app.deps import get_current_claims
 from app.models.identity import (
-    Campus,
     Institution,
     MfaChallenge,
     RefreshSession,
@@ -73,7 +72,7 @@ def _clear_refresh_cookie(response: Response) -> None:
 
 async def _issue_tokens_for_user(session: AsyncSession, response: Response, user: User) -> AccessTokenResponse:
     access_token = issue_access_token(
-        user_id=user.id, institution_id=user.institution_id, campus_id=user.campus_id, role=user.role.value
+        user_id=user.id, institution_id=user.institution_id, role=user.role.value
     )
     refresh_token, token_hash = generate_refresh_token()
     session.add(
@@ -227,21 +226,8 @@ async def register(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Registration is not available right now"
         )
 
-    # Looked up from real data rather than a hardcoded seed UUID, which has
-    # drifted from this workspace's live volume before (see repo notes).
-    # Stays null if the institution has no campus yet - a missing campus is
-    # an admin task, not a reason to block account creation.
-    campus_result = await session.execute(
-        select(Campus)
-        .where(Campus.institution_id == institution.id)
-        .order_by(Campus.created_at, Campus.id)
-        .limit(1)
-    )
-    campus = campus_result.scalar_one_or_none()
-
     user = User(
         institution_id=institution.id,
-        campus_id=campus.id if campus else None,
         email=email,
         full_name=payload.full_name,
         role=Role.STUDENT,
@@ -335,7 +321,7 @@ async def refresh(
     await session.commit()
 
     access_token = issue_access_token(
-        user_id=user.id, institution_id=user.institution_id, campus_id=user.campus_id, role=user.role.value
+        user_id=user.id, institution_id=user.institution_id, role=user.role.value
     )
     _set_refresh_cookie(response, new_refresh_token)
     return AccessTokenResponse(
@@ -376,5 +362,4 @@ async def me(
         full_name=user.full_name,
         role=user.role,
         institution_id=user.institution_id,
-        campus_id=user.campus_id,
     )

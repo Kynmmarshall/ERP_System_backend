@@ -15,7 +15,6 @@ from app.core.security import hash_mfa_code, hash_password
 from app.core.tenant_context import set_platform_context
 from app.main import app
 from app.models.identity import (
-    Campus,
     Institution,
     MfaChallenge,
     Role,
@@ -40,8 +39,6 @@ async def _registration_institution(monkeypatch) -> Institution:
         await set_platform_context(session)
         institution = Institution(name=f"RoleReq {unique}", slug=f"rolereq-{unique}")
         session.add(institution)
-        await session.flush()
-        session.add(Campus(institution_id=institution.id, name="Main"))
         await session.commit()
         monkeypatch.setattr(settings, "self_registration_institution_slug", institution.slug)
         return institution

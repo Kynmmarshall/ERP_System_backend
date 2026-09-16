@@ -4,7 +4,7 @@ from datetime import datetime
 
 from sqlalchemy import DateTime, Enum, ForeignKey, Index, String, func, text
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
 
@@ -29,25 +29,6 @@ class Institution(Base):
     slug: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    campuses: Mapped[list["Campus"]] = relationship(back_populates="institution")
-
-
-class Campus(Base):
-    __tablename__ = "campuses"
-
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
-    institution_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False
-    )
-    name: Mapped[str] = mapped_column(String(200), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-    institution: Mapped[Institution] = relationship(back_populates="campuses")
-
-    __table_args__ = (Index("ix_campuses_institution_id", "institution_id"),)
-
 
 class User(Base):
     __tablename__ = "users"
@@ -58,9 +39,6 @@ class User(Base):
     # Null only for a platform SUPER_ADMIN acting outside any single tenant.
     institution_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("institutions.id", ondelete="CASCADE"), nullable=True
-    )
-    campus_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("campuses.id", ondelete="SET NULL"), nullable=True
     )
     email: Mapped[str] = mapped_column(String(320), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(200), nullable=False)

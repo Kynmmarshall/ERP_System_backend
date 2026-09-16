@@ -14,7 +14,7 @@ from app.core.db import SessionFactory
 from app.core.security import hash_mfa_code, hash_password
 from app.core.tenant_context import set_platform_context
 from app.main import app
-from app.models.identity import Campus, Institution, MfaChallenge, Role, User
+from app.models.identity import Institution, MfaChallenge, Role, User
 
 _PASSWORD = "correct horse battery staple"
 
@@ -35,15 +35,11 @@ async def _institution_with_users(*roles: Role) -> tuple[Institution, dict[Role,
         institution = Institution(name=f"RBAC Test {unique}", slug=f"rbac-{unique}")
         session.add(institution)
         await session.flush()
-        campus = Campus(institution_id=institution.id, name="Main")
-        session.add(campus)
-        await session.flush()
 
         users: dict[Role, User] = {}
         for role in roles:
             user = User(
                 institution_id=institution.id,
-                campus_id=campus.id,
                 email=f"{role.value}-{unique}@example.com",
                 full_name=f"{role.value} user",
                 role=role,

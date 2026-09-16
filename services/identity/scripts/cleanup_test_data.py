@@ -10,8 +10,8 @@ removes them.
     # actually delete:
     docker compose exec identity python -m scripts.cleanup_test_data --apply
 
-Deleting an Institution cascades to its campuses, users, refresh sessions,
-MFA challenges and role requests, so whole test tenants go in one step.
+Deleting an Institution cascades to its users, refresh sessions, MFA
+challenges and role requests, so whole test tenants go in one step.
 
 Safety: PROTECTED_EMAILS and PROTECTED_SLUGS are checked before any pattern,
 so the seeded demo accounts and the two real institutions can never be
@@ -25,7 +25,7 @@ from sqlalchemy import select
 
 from app.core.db import SessionFactory
 from app.core.tenant_context import set_platform_context
-from app.models.identity import Campus, Institution, User
+from app.models.identity import Institution, User
 
 # ict-main is the real tenant; dev-isolation-test is seeded on purpose as
 # tenant-isolation evidence and is expected to hold zero users.
@@ -121,11 +121,6 @@ async def main(apply: bool) -> None:
         for user in doomed_users:
             await session.delete(user)
         for institution in doomed_institutions:
-            campuses = (
-                await session.execute(select(Campus).where(Campus.institution_id == institution.id))
-            ).scalars().all()
-            for campus in campuses:
-                await session.delete(campus)
             await session.delete(institution)
         await session.commit()
 

@@ -34,7 +34,6 @@ def _mint_token(*, expires_delta: timedelta = timedelta(minutes=10), **overrides
     claims = {
         "sub": str(uuid.uuid4()),
         "tenant_id": str(uuid.uuid4()),
-        "campus_id": None,
         "role": "student",
         "iss": JWT_ISSUER,
         "aud": JWT_AUDIENCE,
@@ -81,13 +80,12 @@ async def _get_outbox_event(enrollment_id: uuid.UUID) -> OutboxEvent:
 async def test_student_can_enroll_self(client) -> None:
     institution_id = uuid.uuid4()
     student_id = uuid.uuid4()
-    campus_id = uuid.uuid4()
     program, term = await _seed_program_and_term(institution_id)
     token = _mint_token(sub=str(student_id), tenant_id=str(institution_id), role="student")
 
     response = await client.post(
         "/api/v1/academic/enrollments",
-        json={"program_id": str(program.id), "term_id": str(term.id), "campus_id": str(campus_id)},
+        json={"program_id": str(program.id), "term_id": str(term.id)},
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -102,13 +100,12 @@ async def test_student_can_enroll_self(client) -> None:
 async def test_enrollment_creates_exactly_one_outbox_event_matching_contract(client) -> None:
     institution_id = uuid.uuid4()
     student_id = uuid.uuid4()
-    campus_id = uuid.uuid4()
     program, term = await _seed_program_and_term(institution_id)
     token = _mint_token(sub=str(student_id), tenant_id=str(institution_id), role="student")
 
     response = await client.post(
         "/api/v1/academic/enrollments",
-        json={"program_id": str(program.id), "term_id": str(term.id), "campus_id": str(campus_id)},
+        json={"program_id": str(program.id), "term_id": str(term.id)},
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 201
@@ -133,7 +130,6 @@ async def test_enrollment_creates_exactly_one_outbox_event_matching_contract(cli
 async def test_staff_can_enroll_a_specific_student(client) -> None:
     institution_id = uuid.uuid4()
     student_id = uuid.uuid4()
-    campus_id = uuid.uuid4()
     program, term = await _seed_program_and_term(institution_id)
     token = _mint_token(sub=str(uuid.uuid4()), tenant_id=str(institution_id), role="staff")
 
@@ -142,7 +138,6 @@ async def test_staff_can_enroll_a_specific_student(client) -> None:
         json={
             "program_id": str(program.id),
             "term_id": str(term.id),
-            "campus_id": str(campus_id),
             "student_id": str(student_id),
         },
         headers={"Authorization": f"Bearer {token}"},
@@ -154,13 +149,12 @@ async def test_staff_can_enroll_a_specific_student(client) -> None:
 
 async def test_staff_enrollment_without_student_id_is_rejected(client) -> None:
     institution_id = uuid.uuid4()
-    campus_id = uuid.uuid4()
     program, term = await _seed_program_and_term(institution_id)
     token = _mint_token(sub=str(uuid.uuid4()), tenant_id=str(institution_id), role="staff")
 
     response = await client.post(
         "/api/v1/academic/enrollments",
-        json={"program_id": str(program.id), "term_id": str(term.id), "campus_id": str(campus_id)},
+        json={"program_id": str(program.id), "term_id": str(term.id)},
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -169,7 +163,6 @@ async def test_staff_enrollment_without_student_id_is_rejected(client) -> None:
 
 async def test_student_cannot_enroll_another_student(client) -> None:
     institution_id = uuid.uuid4()
-    campus_id = uuid.uuid4()
     program, term = await _seed_program_and_term(institution_id)
     token = _mint_token(sub=str(uuid.uuid4()), tenant_id=str(institution_id), role="student")
 
@@ -178,7 +171,6 @@ async def test_student_cannot_enroll_another_student(client) -> None:
         json={
             "program_id": str(program.id),
             "term_id": str(term.id),
-            "campus_id": str(campus_id),
             "student_id": str(uuid.uuid4()),
         },
         headers={"Authorization": f"Bearer {token}"},
@@ -190,10 +182,9 @@ async def test_student_cannot_enroll_another_student(client) -> None:
 async def test_duplicate_enrollment_is_rejected(client) -> None:
     institution_id = uuid.uuid4()
     student_id = uuid.uuid4()
-    campus_id = uuid.uuid4()
     program, term = await _seed_program_and_term(institution_id)
     token = _mint_token(sub=str(student_id), tenant_id=str(institution_id), role="student")
-    payload = {"program_id": str(program.id), "term_id": str(term.id), "campus_id": str(campus_id)}
+    payload = {"program_id": str(program.id), "term_id": str(term.id)}
 
     first = await client.post(
         "/api/v1/academic/enrollments", json=payload, headers={"Authorization": f"Bearer {token}"}
@@ -209,13 +200,12 @@ async def test_duplicate_enrollment_is_rejected(client) -> None:
 async def test_enrollment_in_unknown_program_is_rejected(client) -> None:
     institution_id = uuid.uuid4()
     student_id = uuid.uuid4()
-    campus_id = uuid.uuid4()
     _, term = await _seed_program_and_term(institution_id)
     token = _mint_token(sub=str(student_id), tenant_id=str(institution_id), role="student")
 
     response = await client.post(
         "/api/v1/academic/enrollments",
-        json={"program_id": str(uuid.uuid4()), "term_id": str(term.id), "campus_id": str(campus_id)},
+        json={"program_id": str(uuid.uuid4()), "term_id": str(term.id)},
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -238,13 +228,12 @@ async def test_programs_are_isolated_across_institutions(client) -> None:
 
 async def test_student_only_sees_own_enrollments(client) -> None:
     institution_id = uuid.uuid4()
-    campus_id = uuid.uuid4()
     program, term = await _seed_program_and_term(institution_id)
     student_a = uuid.uuid4()
     student_b = uuid.uuid4()
     token_a = _mint_token(sub=str(student_a), tenant_id=str(institution_id), role="student")
     token_b = _mint_token(sub=str(student_b), tenant_id=str(institution_id), role="student")
-    payload = {"program_id": str(program.id), "term_id": str(term.id), "campus_id": str(campus_id)}
+    payload = {"program_id": str(program.id), "term_id": str(term.id)}
 
     await client.post("/api/v1/academic/enrollments", json=payload, headers={"Authorization": f"Bearer {token_a}"})
     await client.post("/api/v1/academic/enrollments", json=payload, headers={"Authorization": f"Bearer {token_b}"})
