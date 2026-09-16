@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     brevo_api_key: str = ""
     brevo_sender_email: str = "no-reply@ict-erp-system.duckdns.org"
     brevo_sender_name: str = "ICT University ERP"
+    # Opt-in: only set once the URL is confirmed publicly reachable, since a
+    # broken remote image renders worse than the built-in text mark.
+    mfa_email_logo_url: str = ""
 
     @model_validator(mode="after")
     def _require_real_mfa_sender_in_production(self) -> "Settings":

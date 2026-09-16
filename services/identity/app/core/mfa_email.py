@@ -17,6 +17,7 @@ import logging
 import httpx
 
 from app.core.config import settings
+from app.core.mfa_email_template import render_mfa_html, render_mfa_text
 
 logger = logging.getLogger("identity.mfa")
 
@@ -45,18 +46,9 @@ async def _send_via_brevo(*, to_email: str, to_name: str, code: str) -> None:
             json={
                 "sender": {"name": settings.brevo_sender_name, "email": settings.brevo_sender_email},
                 "to": [{"email": to_email, "name": to_name}],
-                "subject": "Your ICT University ERP sign-in code",
-                "textContent": (
-                    f"Your sign-in code is {code}.\n\n"
-                    f"It expires in {minutes} minutes and can only be used once.\n"
-                    "If you did not try to sign in, change your password immediately."
-                ),
-                "htmlContent": (
-                    "<p>Your sign-in code is:</p>"
-                    f"<p style=\"font-size:24px;font-weight:bold;letter-spacing:4px\">{code}</p>"
-                    f"<p>It expires in {minutes} minutes and can only be used once.</p>"
-                    "<p>If you did not try to sign in, change your password immediately.</p>"
-                ),
+                "subject": f"{code} is your ICT University ERP sign-in code",
+                "textContent": render_mfa_text(to_name=to_name, code=code, minutes=minutes),
+                "htmlContent": render_mfa_html(to_name=to_name, code=code, minutes=minutes),
             },
         )
         response.raise_for_status()
