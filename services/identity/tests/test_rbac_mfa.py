@@ -11,7 +11,7 @@ from sqlalchemy import select
 
 from app.core.config import settings
 from app.core.db import SessionFactory
-from app.core.security import hash_mfa_code, hash_password
+from app.core.security import generate_mfa_code, hash_mfa_code, hash_password
 from app.core.tenant_context import set_platform_context
 from app.main import app
 from app.models.identity import Institution, MfaChallenge, Role, User
@@ -99,6 +99,50 @@ async def test_admin_login_returns_mfa_challenge_not_tokens(client) -> None:
     # The half-finished login must not hand out any usable credential.
     assert "access_token" not in body
     assert "refresh_token" not in response.cookies
+
+
+async def test_console_provider_issues_the_fixed_dev_code(client, monkeypatch) -> None:
+    """Under the disclosed console provider the code is pinned to 123456 so a
+    demo login does not need a log lookup."""
+    monkeypatch.setattr(settings, "mfa_email_provider", "console")
+    monkeypatch.setattr(settings, "environment", "development")
+    _, users = await _institution_with_users(Role.ADMIN)
+    login = await client.post(
+        "/api/v1/auth/login", json={"email": users[Role.ADMIN].email, "password": _PASSWORD}
+    )
+
+    response = await client.post(
+        "/api/v1/auth/mfa/verify",
+        json={"challenge_id": login.json()["challenge_id"], "code": "123456"},
+    )
+
+    assert response.status_code == 200, response.text
+    assert "access_token" in response.json()
+
+
+async def test_the_fixed_dev_code_is_confined_to_the_console_provider() -> None:
+    """A real mail provider must still get an unpredictable code - otherwise
+    the dev shortcut would become a production backdoor."""
+    monkeypatch = pytest.MonkeyPatch()
+    try:
+        monkeypatch.setattr(settings, "mfa_email_provider", "brevo")
+        codes = {generate_mfa_code()[0] for _ in range(20)}
+    finally:
+        monkeypatch.undo()
+
+    assert len(codes) > 1, "brevo provider produced a repeating code"
+
+
+async def test_the_fixed_dev_code_is_not_used_in_production() -> None:
+    monkeypatch = pytest.MonkeyPatch()
+    try:
+        monkeypatch.setattr(settings, "mfa_email_provider", "console")
+        monkeypatch.setattr(settings, "environment", "production")
+        codes = {generate_mfa_code()[0] for _ in range(20)}
+    finally:
+        monkeypatch.undo()
+
+    assert len(codes) > 1, "production fell back to the fixed development code"
 
 
 async def test_student_and_staff_login_does_not_require_mfa(client) -> None:

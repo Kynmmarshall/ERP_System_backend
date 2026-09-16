@@ -16,6 +16,8 @@ JWT_ISSUER = "ict-erp-identity"
 JWT_AUDIENCE = "ict-erp-services"
 JWT_ALGORITHM = "RS256"
 
+_DEV_CONSOLE_MFA_CODE = "123456"
+
 
 def hash_password(plain_password: str) -> str:
     return _hasher.hash(plain_password)
@@ -85,7 +87,16 @@ def refresh_token_expiry() -> datetime:
 def generate_mfa_code() -> tuple[str, str]:
     """Returns (6_digit_code_for_email, sha256_hash_for_storage). Uses
     secrets.randbelow, never random.*, so codes are not predictable from a
-    previously observed one."""
+    previously observed one.
+
+    The "console" provider already prints the code to the service log, so
+    under it the code is fixed to 123456 to save the log lookup - it discloses
+    nothing that provider did not already disclose. Two independent guards
+    keep it out of production: config.py refuses to boot in production unless
+    the provider is "brevo", and the environment check below.
+    """
+    if settings.mfa_email_provider == "console" and settings.environment != "production":
+        return _DEV_CONSOLE_MFA_CODE, hash_mfa_code(_DEV_CONSOLE_MFA_CODE)
     code = f"{secrets.randbelow(1_000_000):06d}"
     return code, hashlib.sha256(code.encode("utf-8")).hexdigest()
 

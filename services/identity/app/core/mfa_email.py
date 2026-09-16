@@ -9,8 +9,10 @@ Two selectable providers (MFA_EMAIL_PROVIDER):
                 has actually been run and checked.
   - "console" : DISCLOSED development substitute - writes the code to the
                 service log instead of sending mail, so the flow is fully
-                testable without a provider account. app/core/config.py
-                refuses to start in production with this selected.
+                testable without a provider account. Codes are also pinned
+                to 123456 under this provider (see core/security.py).
+                app/core/config.py refuses to start in production with this
+                selected.
 """
 import logging
 
