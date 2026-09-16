@@ -17,7 +17,7 @@ from app.schemas import (
 
 router = APIRouter()
 
-_STAFF_ROLES = ("admin", "staff", "super_admin")
+_STAFF_ROLES = ("admin", "staff", "finance_staff", "super_admin")
 
 
 @router.post("/campaigns", response_model=CampaignResponse, status_code=status.HTTP_201_CREATED)

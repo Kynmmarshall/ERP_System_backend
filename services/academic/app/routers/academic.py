@@ -38,7 +38,7 @@ async def create_enrollment(
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="Students may only enroll themselves"
             )
-    elif role in ("admin", "staff"):
+    elif role in ("admin", "staff", "lecturer", "super_admin"):
         if payload.student_id is None:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="student_id is required")
         student_id = payload.student_id

@@ -22,7 +22,7 @@ from app.schemas import (
 router = APIRouter()
 
 _HR_ADMIN_ROLES = ("admin", "super_admin")
-_STAFF_ROLES = ("admin", "staff", "super_admin")
+_STAFF_ROLES = ("admin", "staff", "lecturer", "finance_staff", "super_admin")
 
 QR_TOKEN_VALIDITY = timedelta(minutes=10)
 

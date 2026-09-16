@@ -12,7 +12,7 @@ from app.schemas import PerformanceReviewCreateRequest, PerformanceReviewRespons
 router = APIRouter()
 
 _HR_ADMIN_ROLES = ("admin", "super_admin")
-_STAFF_ROLES = ("admin", "staff", "super_admin")
+_STAFF_ROLES = ("admin", "staff", "lecturer", "finance_staff", "super_admin")
 
 
 @router.post("/performance/reviews", response_model=PerformanceReviewResponse, status_code=status.HTTP_201_CREATED)
