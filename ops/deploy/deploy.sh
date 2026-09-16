@@ -26,6 +26,12 @@ cd "${DEPLOY_PATH:?DEPLOY_PATH must be set}"
 echo "=== Bringing up stack (${BUILD_FLAG}) ==="
 docker compose $COMPOSE_FILES up -d $BUILD_FLAG
 
+# nginx resolves upstream hostnames once, at startup. Any service that got a
+# new container IP in the step above leaves the gateway pointing at a dead
+# address, which surfaces as 404 on every /api/v1/... route rather than 502.
+echo "=== Restarting gateway so it re-resolves upstream addresses ==="
+docker compose $COMPOSE_FILES restart gateway
+
 echo "=== Waiting for all services to report healthy (timeout ${READY_TIMEOUT_SECONDS}s) ==="
 deadline=$(( $(date +%s) + READY_TIMEOUT_SECONDS ))
 for path in "${HEALTHZ_PATHS[@]}"; do
