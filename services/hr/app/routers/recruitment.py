@@ -129,3 +129,16 @@ async def hire_candidate(
     session.add(employee)
     await session.commit()
     return employee
+
+
+@router.get("/employees", response_model=list[EmployeeResponse])
+async def list_employees(
+    claims: dict = Depends(require_roles(*_HR_ADMIN_ROLES)),
+    session: AsyncSession = Depends(get_tenant_session),
+) -> list[Employee]:
+    """Admin-only: the roster carries salary, so it stays above the staff band.
+    Shift, review and asset-assignment forms all need this to resolve an
+    employee_id without asking an admin to paste a UUID.
+    """
+    result = await session.execute(select(Employee).order_by(Employee.full_name))
+    return list(result.scalars().all())
