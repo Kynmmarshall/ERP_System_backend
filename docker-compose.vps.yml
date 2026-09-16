@@ -12,6 +12,14 @@
 # (which then refuses to start on a console MFA provider, so admin codes can
 # never be the fixed dev 123456) and the Secure refresh cookie.
 services:
+  rabbitmq:
+    # The VPS already runs its own RabbitMQ on 15672, and publishing a second
+    # management UI there just fails with "port is already allocated". Nothing
+    # in the app needs it - only ops/monitoring/health_check.py does, for queue
+    # depths. To get that back, publish a free port here and point
+    # HEALTHCHECK_RABBITMQ_MGMT_URL at it.
+    ports: !override []
+
   identity:
     environment:
       ENVIRONMENT: production
