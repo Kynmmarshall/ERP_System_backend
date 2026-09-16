@@ -23,7 +23,7 @@ HEALTHZ_PATHS=(
 
 cd "${DEPLOY_PATH:?DEPLOY_PATH must be set}"
 
-echo "=== Bringing up stack (pinned images, no build) ==="
+echo "=== Bringing up stack (${BUILD_FLAG}) ==="
 docker compose $COMPOSE_FILES up -d $BUILD_FLAG
 
 echo "=== Waiting for all services to report healthy (timeout ${READY_TIMEOUT_SECONDS}s) ==="

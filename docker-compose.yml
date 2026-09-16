@@ -38,7 +38,9 @@ services:
       # Management API/UI, loopback-only - never publish 0.0.0.0 here. Lets
       # ops/monitoring/health_check.py (run via host cron) check queue
       # depths without this ever being reachable from outside the host.
-      - "127.0.0.1:15672:15672"
+      # Host port is configurable because a VPS that already runs its own
+      # RabbitMQ has 15672 taken.
+      - "127.0.0.1:${RABBITMQ_MGMT_PORT:-15672}:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
