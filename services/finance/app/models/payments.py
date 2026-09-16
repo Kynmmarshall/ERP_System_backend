@@ -34,6 +34,12 @@ class PaymentIntent(Base):
     amount_xaf: Mapped[int] = mapped_column(BigInteger, nullable=False)
     provider: Mapped[str] = mapped_column(String(50), nullable=False, default="mtn_momo")
     provider_reference: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    # Only set for hosted-redirect providers (camerpay): the provider's OWN
+    # transaction id (distinct from provider_reference, which is OUR
+    # idempotency key) and the URL to send the customer's browser to.
+    # Direct push-to-phone providers (mtn_momo, test_double) leave both null.
+    provider_transaction_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    redirect_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     payer_msisdn: Mapped[str] = mapped_column(String(20), nullable=False)
     status: Mapped[PaymentIntentStatus] = mapped_column(
         Enum(PaymentIntentStatus, name="payment_intent_status"),

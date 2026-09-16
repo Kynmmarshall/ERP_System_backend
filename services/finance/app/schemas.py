@@ -52,6 +52,7 @@ class PaymentIntentResponse(BaseModel):
     amount_xaf: int
     provider: str
     provider_reference: str
+    redirect_url: str | None
     status: str
     created_at: datetime
 

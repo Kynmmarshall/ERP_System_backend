@@ -20,5 +20,13 @@ class Settings(BaseSettings):
     camerpay_api_key: str = ""
     camerpay_target_environment: str = "sandbox"
 
+    # camerpay.biz aggregator API (camerpay_provider="camerpay") - distinct
+    # credential set from the direct mtn_momo mode above.
+    camerpay_token: str = ""
+    camerpay_base_url: str = "https://camerpay.biz/api"
+    camerpay_callback_secret: str = ""
+    camerpay_merchant_callback_url: str = ""
+    camerpay_merchant_return_url: str = ""
+
 
 settings = Settings()

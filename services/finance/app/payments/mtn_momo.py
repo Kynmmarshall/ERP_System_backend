@@ -10,7 +10,7 @@ from datetime import UTC, datetime, timedelta
 import httpx
 
 from app.core.config import settings
-from app.payments.protocol import PaymentStatus
+from app.payments.protocol import InitiateResult, PaymentStatus
 
 _BASE_URLS = {
     "sandbox": "https://sandbox.momodeveloper.mtn.com",
@@ -41,7 +41,7 @@ class MtnMomoGateway:
         self._token_expires_at = datetime.now(UTC) + timedelta(seconds=int(body["expires_in"]) - 30)
         return access_token
 
-    async def request_to_pay(self, *, reference: str, amount_xaf: int, payer_msisdn: str) -> None:
+    async def request_to_pay(self, *, reference: str, amount_xaf: int, payer_msisdn: str) -> InitiateResult:
         async with httpx.AsyncClient(timeout=15.0) as client:
             token = await self._get_access_token(client)
             response = await client.post(
@@ -63,8 +63,16 @@ class MtnMomoGateway:
                 },
             )
             response.raise_for_status()
+        return InitiateResult()
 
-    async def get_status(self, *, reference: str, requested_at: datetime, payer_msisdn: str) -> PaymentStatus:
+    async def get_status(
+        self,
+        *,
+        reference: str,
+        requested_at: datetime,
+        payer_msisdn: str,
+        provider_transaction_id: str | None = None,
+    ) -> PaymentStatus:
         async with httpx.AsyncClient(timeout=15.0) as client:
             token = await self._get_access_token(client)
             response = await client.get(

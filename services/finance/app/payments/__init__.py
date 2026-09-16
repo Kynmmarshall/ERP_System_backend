@@ -11,4 +11,8 @@ def get_gateway() -> PaymentGateway:
         from app.payments.mtn_momo import MtnMomoGateway
 
         return MtnMomoGateway()
+    if settings.camerpay_provider == "camerpay":
+        from app.payments.camerpay import CamerPayGateway
+
+        return CamerPayGateway()
     return CamerPayTestDoubleGateway()
