@@ -82,3 +82,19 @@ def hash_refresh_token(token: str) -> str:
 
 def refresh_token_expiry() -> datetime:
     return datetime.now(UTC) + timedelta(days=settings.refresh_token_ttl_days)
+
+
+def generate_mfa_code() -> tuple[str, str]:
+    """Returns (6_digit_code_for_email, sha256_hash_for_storage). Uses
+    secrets.randbelow, never random.*, so codes are not predictable from a
+    previously observed one."""
+    code = f"{secrets.randbelow(1_000_000):06d}"
+    return code, hashlib.sha256(code.encode("utf-8")).hexdigest()
+
+
+def hash_mfa_code(code: str) -> str:
+    return hashlib.sha256(code.encode("utf-8")).hexdigest()
+
+
+def mfa_challenge_expiry() -> datetime:
+    return datetime.now(UTC) + timedelta(minutes=settings.mfa_otp_ttl_minutes)

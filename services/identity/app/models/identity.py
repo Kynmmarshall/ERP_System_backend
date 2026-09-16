@@ -83,7 +83,6 @@ class RefreshSession(Base):
     family_id, and the consumed row is marked revoked, so reuse of a
     stale/rotated-out token is detectable (its row will already be revoked).
     """
-
     __tablename__ = "refresh_sessions"
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -107,3 +106,30 @@ class RefreshSession(Base):
         Index("ix_refresh_sessions_user_id", "user_id"),
         Index("ix_refresh_sessions_family_id", "family_id"),
     )
+
+
+class MfaChallenge(Base):
+    """One row per issued login OTP. The code itself is never stored - only
+    its hash, same as refresh tokens - so a database read cannot be replayed
+    as a login. Consumed/expired//attempt-exhausted rows are kept rather than
+    deleted so a failed-MFA pattern stays visible.
+    """
+
+    __tablename__ = "mfa_challenges"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    # Denormalized from the user purely so RLS can scope this table the same
+    # way as `users`, without a join.
+    institution_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("institutions.id", ondelete="CASCADE"), nullable=True
+    )
+    code_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    attempts: Mapped[int] = mapped_column(default=0, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (Index("ix_mfa_challenges_user_id", "user_id"),)

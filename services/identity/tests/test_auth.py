@@ -99,7 +99,10 @@ async def test_account_locks_after_repeated_failed_attempts(client) -> None:
 
 
 async def test_me_returns_profile_scoped_to_own_tenant(client) -> None:
-    user, institution = await _create_user(role=Role.ADMIN, password="correct horse battery staple")
+    # Staff, not admin: admin logins now require an MFA second factor (see
+    # tests/test_rbac_mfa.py), and this test is about tenant scoping of /me,
+    # not about the login flow.
+    user, institution = await _create_user(role=Role.STAFF, password="correct horse battery staple")
     login_response = await client.post(
         "/api/v1/auth/login", json={"email": user.email, "password": "correct horse battery staple"}
     )
@@ -111,7 +114,7 @@ async def test_me_returns_profile_scoped_to_own_tenant(client) -> None:
     body = response.json()
     assert body["id"] == str(user.id)
     assert body["institution_id"] == str(institution.id)
-    assert body["role"] == "admin"
+    assert body["role"] == "staff"
 
 
 async def test_me_rejects_tampered_token(client) -> None:
@@ -231,3 +234,127 @@ async def test_users_from_different_institutions_are_isolated_by_rls() -> None:
 
         result_own = await session.execute(select(User).where(User.id == user_a.id))
         assert result_own.scalar_one_or_none() is not None
+
+
+async def _seed_registration_institution(monkeypatch, *, with_campus: bool = True) -> tuple[Institution, Campus | None]:
+    """Points self-registration at a fresh, isolated institution so
+    registration tests never depend on (or collide with) real seed data."""
+    from app.core.config import settings
+
+    unique = uuid.uuid4().hex[:10]
+    async with SessionFactory() as session:
+        await set_platform_context(session)
+        institution = Institution(name=f"Registration Test {unique}", slug=f"register-test-{unique}")
+        session.add(institution)
+        await session.flush()
+        campus = None
+        if with_campus:
+            campus = Campus(institution_id=institution.id, name=f"Registration Test {unique} Main Campus")
+            session.add(campus)
+        await session.commit()
+
+    monkeypatch.setattr(settings, "self_registration_institution_slug", institution.slug)
+    return institution, campus
+
+
+async def test_register_creates_student_account_and_logs_in(client, monkeypatch) -> None:
+    institution, campus = await _seed_registration_institution(monkeypatch)
+    unique = uuid.uuid4().hex[:10]
+    email = f"new-student-{unique}@example.com"
+
+    response = await client.post(
+        "/api/v1/auth/register",
+        json={"email": email, "password": "a-strong-password", "full_name": "New Student"},
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["token_type"] == "bearer"
+    assert "access_token" in body
+    assert "refresh_token" in response.cookies
+
+    async with SessionFactory() as session:
+        await set_platform_context(session)
+        result = await session.execute(select(User).where(User.email == email))
+        user = result.scalar_one()
+        assert user.role == Role.STUDENT
+        assert user.institution_id == institution.id
+        assert campus is not None
+        assert user.campus_id == campus.id
+
+
+async def test_register_leaves_campus_unset_when_institution_has_none(client, monkeypatch) -> None:
+    institution, _ = await _seed_registration_institution(monkeypatch, with_campus=False)
+    unique = uuid.uuid4().hex[:10]
+    email = f"no-campus-{unique}@example.com"
+
+    response = await client.post(
+        "/api/v1/auth/register",
+        json={"email": email, "password": "a-strong-password", "full_name": "No Campus"},
+    )
+
+    assert response.status_code == 201
+    async with SessionFactory() as session:
+        await set_platform_context(session)
+        result = await session.execute(select(User).where(User.email == email))
+        user = result.scalar_one()
+        assert user.institution_id == institution.id
+        assert user.campus_id is None
+
+
+async def test_register_ignores_client_supplied_role(client, monkeypatch) -> None:
+    await _seed_registration_institution(monkeypatch)
+    unique = uuid.uuid4().hex[:10]
+    email = f"sneaky-{unique}@example.com"
+
+    response = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": email,
+            "password": "a-strong-password",
+            "full_name": "Sneaky User",
+            "role": "super_admin",
+        },
+    )
+
+    assert response.status_code == 201
+    async with SessionFactory() as session:
+        await set_platform_context(session)
+        result = await session.execute(select(User).where(User.email == email))
+        assert result.scalar_one().role == Role.STUDENT
+
+
+async def test_register_with_existing_email_is_rejected(client, monkeypatch) -> None:
+    await _seed_registration_institution(monkeypatch)
+    user, _ = await _create_user()
+
+    response = await client.post(
+        "/api/v1/auth/register",
+        json={"email": user.email, "password": "a-strong-password", "full_name": "Duplicate"},
+    )
+
+    assert response.status_code == 409
+
+
+async def test_register_with_too_short_password_is_rejected(client, monkeypatch) -> None:
+    await _seed_registration_institution(monkeypatch)
+
+    response = await client.post(
+        "/api/v1/auth/register",
+        json={"email": "shortpw@example.com", "password": "short", "full_name": "Short Password"},
+    )
+
+    assert response.status_code == 422
+
+
+async def test_register_with_unconfigured_institution_is_unavailable(client, monkeypatch) -> None:
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "self_registration_institution_slug", "does-not-exist")
+
+    response = await client.post(
+        "/api/v1/auth/register",
+        json={"email": "orphan@example.com", "password": "a-strong-password", "full_name": "Orphan"},
+    )
+
+    assert response.status_code == 503
