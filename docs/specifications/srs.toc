@@ -1,0 +1,121 @@
+\contentsline {section}{Document control}{i}{section*.1}%
+\contentsline {section}{\numberline {1}Purpose, scope and stakeholder goals}{1}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Purpose}{1}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Product scope}{1}{subsection.1.2}%
+\contentsline {subsection}{\numberline {1.3}Success criteria}{1}{subsection.1.3}%
+\contentsline {section}{\numberline {2}Product context, actors and constraints}{2}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Boundary and external systems}{2}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Mandatory constraints}{2}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Actor semantics}{2}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}Operating assumptions}{2}{subsection.2.4}%
+\contentsline {section}{\numberline {3}Functional scope and current delivery boundary}{3}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Requirement status and priority}{3}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Numbering and change control}{3}{subsection.3.2}%
+\contentsline {section}{\numberline {4}Roles, tenancy and information rules}{4}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Effective authorization baseline}{4}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Data rules}{4}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Sensitive information}{4}{subsection.4.3}%
+\contentsline {section}{\numberline {5}Interfaces and business workflow contracts}{5}{section.5}%
+\contentsline {subsection}{\numberline {5.1}HTTP contract}{5}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Session contract}{5}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}Asynchronous contract}{5}{subsection.5.3}%
+\contentsline {subsection}{\numberline {5.4}Payment and notification contract}{5}{subsection.5.4}%
+\contentsline {section}{\numberline {6}Quality requirements and quantitative acceptance}{6}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Test conditions}{6}{subsection.6.1}%
+\contentsline {section}{\numberline {A}Verification strategy and acceptance gates}{7}{section.A}%
+\contentsline {subsection}{\numberline {A.1}Verification methods}{7}{subsection.A.1}%
+\contentsline {subsection}{\numberline {A.2}Entry conditions}{7}{subsection.A.2}%
+\contentsline {subsection}{\numberline {A.3}Exit conditions}{7}{subsection.A.3}%
+\contentsline {subsection}{\numberline {A.4}Defect and evidence management}{7}{subsection.A.4}%
+\contentsline {section}{\numberline {B}Assumptions, risks and unresolved decisions}{8}{section.B}%
+\contentsline {subsection}{\numberline {B.1}Excluded unless separately approved}{8}{subsection.B.1}%
+\contentsline {subsection}{\numberline {B.2}Scope closure}{8}{subsection.B.2}%
+\contentsline {section}{\numberline {C}Detailed requirements catalogue}{9}{section.C}%
+\contentsline {subsection}{\numberline {C.1}Identity, access and tenant context}{9}{subsection.C.1}%
+\contentsline {subsubsection}{\numberline {C.1.1}AUTH-01 -- Secure login}{9}{subsubsection.C.1.1}%
+\contentsline {subsubsection}{\numberline {C.1.2}AUTH-02 -- Token lifetime and claims}{9}{subsubsection.C.1.2}%
+\contentsline {subsubsection}{\numberline {C.1.3}AUTH-03 -- Refresh rotation}{9}{subsubsection.C.1.3}%
+\contentsline {subsubsection}{\numberline {C.1.4}AUTH-04 -- Lockout}{9}{subsubsection.C.1.4}%
+\contentsline {subsubsection}{\numberline {C.1.5}AUTH-05 -- Logout and client expiry}{9}{subsubsection.C.1.5}%
+\contentsline {subsubsection}{\numberline {C.1.6}AUTH-06 -- Role and ownership enforcement}{10}{subsubsection.C.1.6}%
+\contentsline {subsubsection}{\numberline {C.1.7}AUTH-07 -- Tenant-scoped persistence}{10}{subsubsection.C.1.7}%
+\contentsline {subsubsection}{\numberline {C.1.8}AUTH-08 -- Production session configuration}{10}{subsubsection.C.1.8}%
+\contentsline {subsubsection}{\numberline {C.1.9}AUTH-09 -- Administrative MFA}{10}{subsubsection.C.1.9}%
+\contentsline {subsection}{\numberline {C.2}Academic management}{10}{subsection.C.2}%
+\contentsline {subsubsection}{\numberline {C.2.1}ACAD-01 -- Program and course lifecycle}{10}{subsubsection.C.2.1}%
+\contentsline {subsubsection}{\numberline {C.2.2}ACAD-02 -- Enrollment acceptance}{11}{subsubsection.C.2.2}%
+\contentsline {subsubsection}{\numberline {C.2.3}ACAD-03 -- Prerequisite graph}{11}{subsubsection.C.2.3}%
+\contentsline {subsubsection}{\numberline {C.2.4}ACAD-04 -- Course registration}{11}{subsubsection.C.2.4}%
+\contentsline {subsubsection}{\numberline {C.2.5}ACAD-05 -- Teaching assignment scope}{11}{subsubsection.C.2.5}%
+\contentsline {subsubsection}{\numberline {C.2.6}ACAD-06 -- Academic attendance}{11}{subsubsection.C.2.6}%
+\contentsline {subsubsection}{\numberline {C.2.7}ACAD-07 -- Grades and publication}{12}{subsubsection.C.2.7}%
+\contentsline {subsubsection}{\numberline {C.2.8}ACAD-08 -- Grade appeals}{12}{subsubsection.C.2.8}%
+\contentsline {subsubsection}{\numberline {C.2.9}ACAD-09 -- Exam scheduling}{12}{subsubsection.C.2.9}%
+\contentsline {subsubsection}{\numberline {C.2.10}ACAD-10 -- Reports and at-risk indicator}{12}{subsubsection.C.2.10}%
+\contentsline {subsubsection}{\numberline {C.2.11}ACAD-11 -- Academic dashboards}{12}{subsubsection.C.2.11}%
+\contentsline {subsection}{\numberline {C.3}Finance and marketing}{12}{subsection.C.3}%
+\contentsline {subsubsection}{\numberline {C.3.1}FIN-01 -- Fee schedules}{13}{subsubsection.C.3.1}%
+\contentsline {subsubsection}{\numberline {C.3.2}FIN-02 -- Asynchronous invoice creation}{13}{subsubsection.C.3.2}%
+\contentsline {subsubsection}{\numberline {C.3.3}FIN-03 -- Invoice visibility}{13}{subsubsection.C.3.3}%
+\contentsline {subsubsection}{\numberline {C.3.4}FIN-04 -- Payment initiation}{13}{subsubsection.C.3.4}%
+\contentsline {subsubsection}{\numberline {C.3.5}FIN-05 -- Atomic settlement}{13}{subsubsection.C.3.5}%
+\contentsline {subsubsection}{\numberline {C.3.6}FIN-06 -- Mobile-money integration}{13}{subsubsection.C.3.6}%
+\contentsline {subsubsection}{\numberline {C.3.7}FIN-07 -- Digital receipts}{14}{subsubsection.C.3.7}%
+\contentsline {subsubsection}{\numberline {C.3.8}FIN-08 -- Expenses and financial ledger}{14}{subsubsection.C.3.8}%
+\contentsline {subsubsection}{\numberline {C.3.9}FIN-09 -- Campaign and lead tracking}{14}{subsubsection.C.3.9}%
+\contentsline {subsubsection}{\numberline {C.3.10}FIN-10 -- Campaign ROI}{14}{subsubsection.C.3.10}%
+\contentsline {subsubsection}{\numberline {C.3.11}FIN-11 -- Monthly summaries}{14}{subsubsection.C.3.11}%
+\contentsline {subsubsection}{\numberline {C.3.12}FIN-12 -- Finance and marketing dashboards}{15}{subsubsection.C.3.12}%
+\contentsline {subsection}{\numberline {C.4}Administration and human resources}{15}{subsection.C.4}%
+\contentsline {subsubsection}{\numberline {C.4.1}HR-01 -- Recruitment and hiring}{15}{subsubsection.C.4.1}%
+\contentsline {subsubsection}{\numberline {C.4.2}HR-02 -- Employee lifecycle}{15}{subsubsection.C.4.2}%
+\contentsline {subsubsection}{\numberline {C.4.3}HR-03 -- QR attendance}{15}{subsubsection.C.4.3}%
+\contentsline {subsubsection}{\numberline {C.4.4}HR-04 -- Leave requests and decisions}{15}{subsubsection.C.4.4}%
+\contentsline {subsubsection}{\numberline {C.4.5}HR-05 -- Task notifications}{16}{subsubsection.C.4.5}%
+\contentsline {subsubsection}{\numberline {C.4.6}HR-06 -- Performance reviews}{16}{subsubsection.C.4.6}%
+\contentsline {subsubsection}{\numberline {C.4.7}HR-07 -- Versioned payroll rates}{16}{subsubsection.C.4.7}%
+\contentsline {subsubsection}{\numberline {C.4.8}HR-08 -- Payroll calculation}{16}{subsubsection.C.4.8}%
+\contentsline {subsubsection}{\numberline {C.4.9}HR-09 -- Payroll runs and approval}{16}{subsubsection.C.4.9}%
+\contentsline {subsubsection}{\numberline {C.4.10}HR-10 -- Assets and inventory}{17}{subsubsection.C.4.10}%
+\contentsline {subsubsection}{\numberline {C.4.11}HR-11 -- HR dashboards}{17}{subsubsection.C.4.11}%
+\contentsline {subsection}{\numberline {C.5}Data, integration and operational quality}{17}{subsection.C.5}%
+\contentsline {subsubsection}{\numberline {C.5.1}DATA-01 -- Service-owned relational data}{17}{subsubsection.C.5.1}%
+\contentsline {subsubsection}{\numberline {C.5.2}DATA-02 -- Query optimization evidence}{17}{subsubsection.C.5.2}%
+\contentsline {subsubsection}{\numberline {C.5.3}DATA-03 -- Backup and recovery}{17}{subsubsection.C.5.3}%
+\contentsline {subsubsection}{\numberline {C.5.4}INT-01 -- Versioned REST API and static registry}{18}{subsubsection.C.5.4}%
+\contentsline {subsubsection}{\numberline {C.5.5}INT-02 -- Gateway controls}{18}{subsubsection.C.5.5}%
+\contentsline {subsubsection}{\numberline {C.5.6}INT-03 -- Event contract evolution}{18}{subsubsection.C.5.6}%
+\contentsline {subsubsection}{\numberline {C.5.7}OPS-01 -- Containerized clean setup}{18}{subsubsection.C.5.7}%
+\contentsline {subsubsection}{\numberline {C.5.8}OPS-02 -- CI quality and image builds}{18}{subsubsection.C.5.8}%
+\contentsline {subsubsection}{\numberline {C.5.9}OPS-03 -- Controlled promotion}{19}{subsubsection.C.5.9}%
+\contentsline {subsubsection}{\numberline {C.5.10}OPS-04 -- Load acceptance}{19}{subsubsection.C.5.10}%
+\contentsline {subsubsection}{\numberline {C.5.11}OPS-05 -- Logging and monitoring}{19}{subsubsection.C.5.11}%
+\contentsline {subsubsection}{\numberline {C.5.12}OPS-06 -- Horizontal scaling strategy}{19}{subsubsection.C.5.12}%
+\contentsline {subsubsection}{\numberline {C.5.13}OPS-07 -- Security mitigation evidence}{19}{subsubsection.C.5.13}%
+\contentsline {subsubsection}{\numberline {C.5.14}DOC-01 -- Submission and traceability}{19}{subsubsection.C.5.14}%
+\contentsline {subsection}{\numberline {C.6}Frontend interaction requirements}{20}{subsection.C.6}%
+\contentsline {subsubsection}{\numberline {C.6.1}UI-01 -- Session-aware navigation}{20}{subsubsection.C.6.1}%
+\contentsline {subsubsection}{\numberline {C.6.2}UI-02 -- Live student academic workflow}{20}{subsubsection.C.6.2}%
+\contentsline {subsubsection}{\numberline {C.6.3}UI-03 -- Payment progress and receipts}{20}{subsubsection.C.6.3}%
+\contentsline {subsubsection}{\numberline {C.6.4}UI-04 -- Employee workspace}{20}{subsubsection.C.6.4}%
+\contentsline {subsubsection}{\numberline {C.6.5}UI-05 -- Responsive and accessible presentation}{20}{subsubsection.C.6.5}%
+\contentsline {subsubsection}{\numberline {C.6.6}UI-06 -- Client data lifecycle and truthful states}{21}{subsubsection.C.6.6}%
+\contentsline {section}{\numberline {D}Detailed use-case specifications}{22}{section.D}%
+\contentsline {subsection}{\numberline {D.1}UC-01 -- Authenticate and maintain a session}{22}{subsection.D.1}%
+\contentsline {subsection}{\numberline {D.2}UC-02 -- Enroll and obtain a tuition invoice}{22}{subsection.D.2}%
+\contentsline {subsection}{\numberline {D.3}UC-03 -- Register a course with prerequisites}{22}{subsection.D.3}%
+\contentsline {subsection}{\numberline {D.4}UC-04 -- Publish and appeal a grade}{22}{subsection.D.4}%
+\contentsline {subsection}{\numberline {D.5}UC-05 -- Settle tuition and retrieve receipt}{23}{subsection.D.5}%
+\contentsline {subsection}{\numberline {D.6}UC-06 -- Schedule an exam safely}{23}{subsection.D.6}%
+\contentsline {subsection}{\numberline {D.7}UC-07 -- Request leave and notify the employee}{23}{subsection.D.7}%
+\contentsline {subsection}{\numberline {D.8}UC-08 -- Generate and approve payroll}{23}{subsection.D.8}%
+\contentsline {subsection}{\numberline {D.9}UC-09 -- Record employee attendance}{23}{subsection.D.9}%
+\contentsline {subsection}{\numberline {D.10}UC-10 -- Control stock movements}{23}{subsection.D.10}%
+\contentsline {section}{\numberline {E}Requirement-to-verification traceability}{25}{section.E}%
+\contentsline {subsection}{\numberline {E.1}Critical acceptance scenario set}{26}{subsection.E.1}%
+\contentsline {section}{\numberline {F}Use-case and context diagrams}{27}{section.F}%
+\contentsline {subsection}{\numberline {F.1}System context and external responsibilities}{28}{subsection.F.1}%
+\contentsline {subsection}{\numberline {F.2}Core actor and use-case model}{29}{subsection.F.2}%
+\contentsline {section}{\numberline {G}Glossary and submission checklist}{30}{section.G}%
+\contentsline {subsection}{\numberline {G.1}Team-owned completion checklist}{30}{subsection.G.1}%
+\contentsline {subsection}{\numberline {G.2}Source references}{30}{subsection.G.2}%

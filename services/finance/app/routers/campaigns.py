@@ -17,7 +17,8 @@ from app.schemas import (
 
 router = APIRouter()
 
-_STAFF_ROLES = ("admin", "staff", "super_admin")
+# Campaigns, leads and ROI belong to marketing, not to the finance desk.
+_STAFF_ROLES = ("admin", "marketing")
 
 
 @router.post("/campaigns", response_model=CampaignResponse, status_code=status.HTTP_201_CREATED)

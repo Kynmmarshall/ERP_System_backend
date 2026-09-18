@@ -10,7 +10,7 @@ async def test_instructor_can_create_session_and_mark_attendance(client) -> None
     course = await seed_course(institution_id, program.id)
     instructor_id = uuid.uuid4()
     offering = await seed_course_offering(institution_id, course.id, term.id, instructor_id=instructor_id)
-    instructor_token = mint_token(sub=str(instructor_id), tenant_id=str(institution_id), role="staff")
+    instructor_token = mint_token(sub=str(instructor_id), tenant_id=str(institution_id), role="lecturer")
 
     session_resp = await client.post(
         "/api/v1/academic/attendance-sessions",
@@ -36,7 +36,7 @@ async def test_non_owning_staff_cannot_manage_attendance(client) -> None:
     course = await seed_course(institution_id, program.id)
     instructor_id = uuid.uuid4()
     offering = await seed_course_offering(institution_id, course.id, term.id, instructor_id=instructor_id)
-    other_staff_token = mint_token(sub=str(uuid.uuid4()), tenant_id=str(institution_id), role="staff")
+    other_staff_token = mint_token(sub=str(uuid.uuid4()), tenant_id=str(institution_id), role="lecturer")
 
     response = await client.post(
         "/api/v1/academic/attendance-sessions",
@@ -70,7 +70,7 @@ async def test_student_only_sees_own_attendance_record(client) -> None:
     course = await seed_course(institution_id, program.id)
     instructor_id = uuid.uuid4()
     offering = await seed_course_offering(institution_id, course.id, term.id, instructor_id=instructor_id)
-    instructor_token = mint_token(sub=str(instructor_id), tenant_id=str(institution_id), role="staff")
+    instructor_token = mint_token(sub=str(instructor_id), tenant_id=str(institution_id), role="lecturer")
 
     session_resp = await client.post(
         "/api/v1/academic/attendance-sessions",
@@ -110,7 +110,7 @@ async def test_duplicate_session_for_same_date_is_rejected(client) -> None:
     course = await seed_course(institution_id, program.id)
     instructor_id = uuid.uuid4()
     offering = await seed_course_offering(institution_id, course.id, term.id, instructor_id=instructor_id)
-    instructor_token = mint_token(sub=str(instructor_id), tenant_id=str(institution_id), role="staff")
+    instructor_token = mint_token(sub=str(instructor_id), tenant_id=str(institution_id), role="lecturer")
     payload = {"course_offering_id": str(offering.id), "session_date": str(date.today())}
 
     first = await client.post(
@@ -125,7 +125,7 @@ async def test_duplicate_session_for_same_date_is_rejected(client) -> None:
 
 
 async def test_session_with_unknown_offering_is_rejected(client) -> None:
-    token = mint_token(tenant_id=str(uuid.uuid4()), role="staff")
+    token = mint_token(tenant_id=str(uuid.uuid4()), role="lecturer")
 
     response = await client.post(
         "/api/v1/academic/attendance-sessions",
@@ -137,7 +137,7 @@ async def test_session_with_unknown_offering_is_rejected(client) -> None:
 
 
 async def test_mark_attendance_on_unknown_session_is_rejected(client) -> None:
-    token = mint_token(tenant_id=str(uuid.uuid4()), role="staff")
+    token = mint_token(tenant_id=str(uuid.uuid4()), role="lecturer")
 
     response = await client.post(
         f"/api/v1/academic/attendance-sessions/{uuid.uuid4()}/records",
@@ -154,7 +154,7 @@ async def test_marking_attendance_twice_updates_existing_record(client) -> None:
     course = await seed_course(institution_id, program.id)
     instructor_id = uuid.uuid4()
     offering = await seed_course_offering(institution_id, course.id, term.id, instructor_id=instructor_id)
-    instructor_token = mint_token(sub=str(instructor_id), tenant_id=str(institution_id), role="staff")
+    instructor_token = mint_token(sub=str(instructor_id), tenant_id=str(institution_id), role="lecturer")
     session_id = (
         await client.post(
             "/api/v1/academic/attendance-sessions",
@@ -185,7 +185,7 @@ async def test_list_attendance_sessions_for_offering(client) -> None:
     course = await seed_course(institution_id, program.id)
     instructor_id = uuid.uuid4()
     offering = await seed_course_offering(institution_id, course.id, term.id, instructor_id=instructor_id)
-    instructor_token = mint_token(sub=str(instructor_id), tenant_id=str(institution_id), role="staff")
+    instructor_token = mint_token(sub=str(instructor_id), tenant_id=str(institution_id), role="lecturer")
     await client.post(
         "/api/v1/academic/attendance-sessions",
         json={"course_offering_id": str(offering.id), "session_date": str(date.today())},

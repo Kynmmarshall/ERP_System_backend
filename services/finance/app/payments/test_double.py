@@ -12,20 +12,27 @@ object.
 """
 from datetime import UTC, datetime, timedelta
 
-from app.payments.protocol import PaymentStatus
+from app.payments.protocol import InitiateResult, PaymentStatus
 
 SETTLEMENT_DELAY = timedelta(seconds=6)
 
 
 class CamerPayTestDoubleGateway:
-    async def request_to_pay(self, *, reference: str, amount_xaf: int, payer_msisdn: str) -> None:
+    async def request_to_pay(self, *, reference: str, amount_xaf: int, payer_msisdn: str) -> InitiateResult:
         """No-op: the real provider call is fire-and-forget too (202
         Accepted then poll), so there is nothing to persist here that
         request_to_pay's caller doesn't already persist itself.
         """
-        return None
+        return InitiateResult()
 
-    async def get_status(self, *, reference: str, requested_at: datetime, payer_msisdn: str) -> PaymentStatus:
+    async def get_status(
+        self,
+        *,
+        reference: str,
+        requested_at: datetime,
+        payer_msisdn: str,
+        provider_transaction_id: str | None = None,
+    ) -> PaymentStatus:
         if payer_msisdn.endswith("0000"):
             return "FAILED"
         elapsed = datetime.now(UTC) - requested_at

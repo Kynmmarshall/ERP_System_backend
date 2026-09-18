@@ -1,0 +1,58 @@
+{
+  "verified_on": "2026-09-13",
+  "scope": "Documentation artifacts only; application tests were not rerun.",
+  "baselines": {
+    "backend": "6e10c54",
+    "frontend": "6cc6859"
+  },
+  "tools": {
+    "plantuml": "1.2025.4",
+    "java": "21.0.11",
+    "tectonic": "0.15.0"
+  },
+  "documents": {
+    "srs.pdf": {
+      "physical_pages": 33,
+      "counted_non_appendix_pages": 9,
+      "main_narrative_pages": 6,
+      "front_matter_pages": 3,
+      "embedded_diagram_sheets": 2,
+      "sha256": "5f0c8ca07c307dfd30e632c9763dc181d64e371f48e9e56b8e464d3649eb8ae9"
+    },
+    "sdd.pdf": {
+      "physical_pages": 57,
+      "counted_non_appendix_pages": 11,
+      "main_narrative_pages": 8,
+      "front_matter_pages": 3,
+      "embedded_diagram_sheets": 21,
+      "sha256": "456d7e592bcac6be2e0374acbe9126473aef735412247c04575a1212e45dcfc2"
+    }
+  },
+  "checks": {
+    "combined_counted_pages": 20,
+    "assignment_limit_pages": 20,
+    "unique_requirement_ids": 63,
+    "all_requirement_evidence_paths_exist": true,
+    "service_local_route_count": 97,
+    "persisted_model_count": 42,
+    "plantuml_diagrams": 21,
+    "png_renders": 21,
+    "svg_renders": 21,
+    "blank_pdf_pages": 0,
+    "text_blocks_outside_page_bounds": 0,
+    "undefined_latex_references": 0,
+    "overfull_latex_boxes": 0,
+    "document_control_bookmarks_target_correct_page": true,
+    "authored_text_trailing_whitespace": false,
+    "documentation_python_powershell_editor_errors": 0,
+    "representative_pages_visually_inspected": true
+  },
+  "qualifications": [
+    "A4 narrative/table pages and A3/A2 diagram sheets are intentional.",
+    "Historical performance and recovery measurements are not new runs.",
+    "Tectonic emitted a host fontconfig configuration notice; compilation succeeded with no missing-character or overflow diagnostics.",
+    "The pre-existing user edit to docs/performance.md and the frontend source tree were not modified.",
+    "The latest rebuild regenerated all 21 PNG/SVG pairs and rechecked PDF pagination, page bounds, bookmarks and hashes.",
+    "This report identifies the verified PDF hashes; regenerate verification after rebuilding or editing."
+  ]
+}

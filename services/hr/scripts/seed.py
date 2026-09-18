@@ -4,7 +4,7 @@ People page has real data to show), plus an example (deliberately
 unverified) payroll schedule version. NOT run automatically by
 docker-compose or Jenkins - run manually, after capturing the staff
 account's real user id (its "sub" claim - identity assigns User.id
-randomly, it is not a fixed constant like the institution/campus ids):
+randomly, it is not a fixed constant like the institution id):
 
     docker compose exec hr python -m scripts.seed <staff-user-id>
 

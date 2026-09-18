@@ -26,7 +26,7 @@ import urllib.error
 import urllib.request
 from datetime import UTC, datetime
 
-GATEWAY_URL = os.environ.get("HEALTHCHECK_GATEWAY_URL", "http://127.0.0.1:8081")
+GATEWAY_URL = os.environ.get("HEALTHCHECK_GATEWAY_URL", "http://127.0.0.1:2022")
 RABBITMQ_MGMT_URL = os.environ.get("HEALTHCHECK_RABBITMQ_MGMT_URL", "http://127.0.0.1:15672")
 RABBITMQ_USER = os.environ.get("RABBITMQ_DEFAULT_USER", "")
 RABBITMQ_PASS = os.environ.get("RABBITMQ_DEFAULT_PASS", "")

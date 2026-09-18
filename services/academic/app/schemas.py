@@ -10,7 +10,6 @@ class PrincipalResponse(BaseModel):
 
     user_id: str
     tenant_id: str | None
-    campus_id: str | None
     role: str
 
 
@@ -34,7 +33,6 @@ class TermResponse(BaseModel):
 class EnrollmentCreateRequest(BaseModel):
     program_id: uuid.UUID
     term_id: uuid.UUID
-    campus_id: uuid.UUID
     # Staff/admin may enroll a specific student; a student may only enroll themselves.
     student_id: uuid.UUID | None = None
 
@@ -45,7 +43,6 @@ class EnrollmentResponse(BaseModel):
     id: uuid.UUID
     program_id: uuid.UUID
     term_id: uuid.UUID
-    campus_id: uuid.UUID
     student_id: uuid.UUID
     status: str
     created_at: datetime
@@ -55,7 +52,7 @@ class CourseCreateRequest(BaseModel):
     program_id: uuid.UUID
     code: str
     name: str
-    credits: int = 3
+    credits: int = 6
 
 
 class CourseResponse(BaseModel):

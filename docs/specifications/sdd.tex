@@ -1,0 +1,729 @@
+\documentclass[10pt,a4paper]{article}
+\newcommand{\DocCode}{ERP-SDD-001}
+\input{common}
+\hypersetup{pdftitle={Software Design Document -- ICT University ERP}}
+\begin{document}
+\cover{Software Design\\Document}{
+Eight-page architecture narrative, followed by detailed design decisions,
+21 PlantUML views, frontend/API integration tables and an automatically generated
+catalogue of 97 service-local routes and 42 persisted models.}
+\frontmatter{Read the SRS for stakeholder requirements and acceptance criteria.
+This SDD describes both the React frontend and the backend implementation.}
+\pagenumbering{arabic}
+
+\section{Architectural baseline and system decomposition}
+\subsection{Scope and viewpoint}
+This document describes frontend baseline \texttt{6cc6859} in \code{ERP_System}
+and backend baseline \texttt{6e10c54} in \code{ERP_System_backend}. All paths are
+backend-relative unless prefixed \code{../ERP_System}. The supplied SEN4121 brief
+drives mandatory boundaries; the SRS identifies requirements and implementation gaps.
+Figures distinguish code-backed structures from conceptual scaling and recovery targets.
+
+\begin{tabularx}{\textwidth}{@{}L{27mm}Y L{36mm}@{}}
+\toprule Boundary & Responsibility & Technology / owned data\\\midrule
+Web frontend & Session UX, route shell, student academics/payments, staff self-service & React 19, TypeScript, Vite; no private database.\\
+Identity & Users, tenants, Argon2 login, RS256 signing, refresh families & FastAPI; \code{identity_db}.\\
+Academic & Enrollment, curriculum, grades/appeals, attendance, exams/reports & FastAPI + outbox worker; \code{academic_db}.\\
+Finance & Fees, invoices, payments/ledger, expenses, campaign ROI and summaries & FastAPI + combined worker; \code{finance_db}.\\
+HR & Recruitment, employee records, leave, shifts, payroll, assets & FastAPI; \code{hr_db}.\\
+Gateway & Single-origin entry, proxy routes, delegated authentication, IP budgets & Nginx; no business persistence.\\
+\bottomrule
+\end{tabularx}
+\subsection{Structural decisions}
+Bounded contexts own data and deployment images. APIs do not perform cross-database
+joins. Academic acceptance triggers Finance asynchronously, avoiding a synchronous
+availability dependency at enrollment time. HTTP serves interactive reads and commands;
+the broker provides durable workflow transfer, not arbitrary service discovery.
+Compose DNS names and explicit Nginx upstreams constitute the static service registry.
+
+Four databases share one PostgreSQL 17 process: this is logical ownership separation,
+not physical high availability. RabbitMQ and the host are additional shared failure
+domains. Workers reuse their service image but are separately runnable processes.
+There is no shared runtime business-model package; the \code{contracts} directory
+shares schemas rather than Python entities.
+
+\subsection{Trace to requirements}
+Implements the architectural shape of DATA-01, INT-01--03 and OPS-01.
+Figure~\ref{fig:03-components} shows ownership and broker topology;
+Figure~\ref{fig:16-deployment} shows actual containers and production prerequisites.
+Complete domain administrative UI, full CRUD, scheduled off-host backups and verified
+production rollout are not implied by these architectural components.
+
+\clearpage
+\section{Frontend architecture and interaction design}
+\subsection{Composition and state}
+\code{main.tsx} creates one TanStack Query client, with one query retry and no
+refetch-on-window-focus. It wraps \code{App}, \code{AuthProvider} and a React Router
+browser router. \code{ProtectedRoute} waits for session restoration and redirects
+unauthenticated users to login while preserving their pathname. It does not enforce
+module roles; feature pages gate their rendered content.
+
+\begin{tabularx}{\textwidth}{@{}L{22mm}L{36mm}Y@{}}
+\toprule Route & Visible experience & Current implementation boundary\\\midrule
+\code{/login} & Public login form & Zod email/password validation, inline server error, return navigation.\\
+\code{/} & Welcome and role & Not a dynamic metrics dashboard.\\
+\code{/academic} & Student academics & Enrollment, offering registration, grades/appeals, risk and PDFs; non-student placeholder.\\
+\code{/finance} & Student invoices & Payment intent polling and receipts; non-student placeholder.\\
+\code{/people} & Staff workspace & Leave, code-based attendance, payslips and notifications; all non-staff roles receive placeholder.\\
+\code{/status} & Authenticated status page & Real gateway/service liveness requests, not dependency readiness.\\
+\code{/settings} & Placeholder & No implemented institution/user administration UI.\\
+\bottomrule
+\end{tabularx}
+\subsection{Transport and presentation}
+Domain service adapters map snake-case HTTP fields into camel-case TypeScript
+models. \code{authFetch} attaches the in-memory bearer token and includes cookies;
+on 401 it uses a shared in-flight refresh promise and retries the original request
+once. \code{authFetchJson} parses error bodies into \code{ApiError}; generic typing
+is a compile-time assertion, not runtime schema validation.
+Report adapters fetch binary blobs and trigger downloads with temporary object URLs.
+
+Forms use React Hook Form/Zod for login and enrollment, and controlled state in
+payment/leave/check-in forms. Shared Button, FormField, Skeleton, EmptyState and
+ErrorState components provide consistent feedback. Tailwind styling, local font
+assets and reduced-motion-aware transitions support a responsive dark interface.
+The shell includes skip navigation, desktop sidebar and mobile menu.
+
+\subsection{Important limits}
+Query keys such as \code{my-invoices} and \code{my-payslips} do not include principal
+identity; authentication transitions do not clear the shared cache. This requires
+explicit account-switch isolation work, not a claim of already completed client
+isolation. Selected download, nested-grade and payment-poll failure states are not
+fully surfaced. These are documented gaps, not code changes in this deliverable.
+Figure~\ref{fig:04-frontend} and Appendix~\ref{app:frontend} detail the integration.
+
+\clearpage
+\section{Identity, authorization and trust boundaries}
+\subsection{Session lifecycle}
+Identity signs ten-minute RS256 JWTs; resource services verify issuer, audience,
+signature and expiry using the public key. Only Identity mounts the private key.
+Refresh sessions use a SHA-256 hash of an opaque token, default fourteen-day lifetime,
+family ID and revocation timestamp. Rotation inserts a successor rather than
+overwriting the old row, enabling sequential token-reuse detection and family revocation.
+Login tracks failures and locks after five failures for fifteen minutes.
+
+Frontend startup performs refresh then \code{/auth/me}; the resulting principal lives
+in React context. Access tokens are held only in a module variable, not persistent
+browser storage. Resource 401 responses trigger refresh/retry and an expiry callback.
+There is no proactive timer that forces logout at the exact JWT expiry instant.
+Logout revokes the presented refresh token; access tokens remain valid until expiry.
+Single-runtime refresh deduplication does not serialize refreshes across browser tabs.
+
+\subsection{Gateway boundary}
+Nginx public exceptions include health/readiness and login/refresh/logout.
+Protected routes use internal \code{/internal/verify} authentication subrequests;
+identity-derived headers replace client-supplied tenant/user headers.
+Business services still validate the bearer token independently. Default request
+budgets are 20/s with burst 40 and login 5/min with burst 5, per source IP.
+JSON APIs use the same browser origin; no separate browser-to-service CORS channel
+is required.
+
+\subsection{Persistence boundary}
+Per-request dependencies set \code{app.current_institution_id} and
+\code{app.is_platform_admin} using transaction-local settings. UUID values are
+validated before the PostgreSQL SET statement. Forced RLS applies to scoped business
+tables and Identity users/refresh sessions, including service-owned tables.
+Identity institution metadata is not RLS-enabled. Bootstrap grants database ownership
+to the service role and revokes public connection access. A separate migration owner
+and non-owner runtime role are not implemented by the current bootstrap.
+Outbox/inbox internal tables intentionally do not follow ordinary tenant RLS.
+Identity credential resolution and trusted workers use explicit platform context.
+
+\subsection{Deployment qualifications}
+Base Compose sets development mode and disables the Secure refresh-cookie flag.
+The production override replaces images/key mounts but does not remove those
+inherited values. Host TLS and effective environment inspection are mandatory
+release gates. The locally public payment callback also remains gateway-protected.
+These configuration facts supersede optimistic comments in older documentation.
+AUTH-01--08 and INT-02 map to Figures~\ref{fig:10-session-sequence} and
+\ref{fig:19-browser-session}.
+
+\clearpage
+\section{Academic domain and asynchronous billing design}
+\subsection{Enrollment and curriculum}
+An enrollment links a student UUID with program and term context.
+Only accepted enrollment status exists; there is no submitted/admissions approval
+state machine. Student/program/term uniqueness prevents duplicate records. The HTTP
+transaction inserts both enrollment and outbox event, then commits without calling
+Finance. Student creation is self-only; staff/admin supplies a student ID.
+
+Curriculum separates Program, Course, Term and CourseOffering.
+Prerequisite edges reference courses twice; recursive reachability rejects cycles.
+Registration checks enrollment ownership and program/term compatibility. A prerequisite
+passes if a published assessment percentage average in any offering is at least 50.
+Offering capacity is stored but not used to reject registration. Course/program
+update/delete UI and APIs are not supplied by the present create/list surface.
+
+\subsection{Teaching, reporting and integrity}
+Assigned instructors and admin/super-admin may manage teaching records.
+Attendance stores sessions and student presence, but mark entry does not check
+registration membership. Grades use decimal persistence, explicit publication and
+student-only published visibility. Appeal decisions allow submitted $\rightarrow$
+under-review/accepted/rejected and under-review $\rightarrow$ accepted/rejected.
+A changed accepted score writes GradeAuditLog with old/new value and actor.
+Ordinary score edits are still possible without that appeal audit path.
+
+Exam creation/rescheduling obtains an institution/term advisory transaction lock
+and tests interval overlap for room, instructor and shared registered students.
+Back-to-back intervals are permitted. Conflict search is term-scoped, not institution-wide
+across all terms. PDF transcripts average published percentages; attendance summaries
+use all created sessions. At-risk status is attendance below 75 percent OR the average
+of the latest two published assessment percentages below 50; fewer than two grades
+does not produce a grade signal.
+
+\subsection{Broker transfer}
+The academic worker polls every two seconds, up to twenty unpublished rows,
+with \code{FOR UPDATE SKIP LOCKED}. Persistent publish uses RabbitMQ confirms before
+setting \code{published_at}. Confirm-before-commit crashes may repeat delivery.
+Finance prefetches ten events, inserts an inbox event ID and generates an invoice
+from its fee schedule in one local transaction. Duplicate event/enrollment paths
+acknowledge without another invoice. Missing fees reject to the DLQ; transient
+failures requeue. There is no distributed transaction or exactly-once broker guarantee.
+ACAD-01--11 and FIN-02 map to Figures~\ref{fig:07-erd-academic},
+\ref{fig:11-enrollment-sequence}, \ref{fig:13-appeal-states} and \ref{fig:20-exam-activity}.
+
+\clearpage
+\section{Finance, payments and analytical projections}
+\subsection{Payment intent and reconciliation}
+Finance owns the invoice amount in whole XAF. A PaymentIntent stores invoice ID,
+provider reference, amount, mobile number and pending/succeeded/failed status.
+A partial unique index permits at most one pending/succeeded intent per invoice.
+The API commits the intent before calling the provider, preserving evidence if
+external I/O fails. It does not claim success on provider request acceptance.
+
+\code{PaymentGateway} is a Python Protocol implemented by
+\code{MtnMomoGateway} and \code{CamerPayTestDoubleGateway}. The fake is stateless:
+numbers ending in 0000 fail; otherwise a six-second elapsed interval produces
+success. It works across API/worker processes without shared memory.
+The MTN adapter uses a token endpoint and collection request/status endpoints
+with a fifteen-second HTTP timeout; live sandbox validation is not established.
+The poller queries status and does not resubmit a request never received by MTN.
+
+\subsection{ACID financial effect}
+Reconciliation locks the intent, short-circuits terminal state and asks the provider.
+Failure commits failed intent only. Success locks the invoice and, if not already
+paid, changes status, posts equal cash debit and tuition revenue credit under one
+\code{posting_id}, and inserts a receipt unique by invoice ID. These changes commit
+together. There is no separate ledger-transaction table. Balance is enforced by the
+application helper, not a cross-row database CHECK constraint. Receipt references
+are UUID columns with invoice uniqueness, not foreign keys.
+
+The worker runs payment reconciliation every three seconds and hourly summary
+catch-up alongside RabbitMQ consumption. Student UI polls active payment state at
+1.5 seconds; success invalidates the invoice query. A provider callback is only a
+status-query hint and currently cannot traverse the public gateway without bearer auth.
+Provider I/O inside the reconciliation row-lock lifetime affects contention.
+
+\subsection{Expenses, campaigns and summaries}
+Expense creation posts expense debit and cash credit atomically. Campaign ROI is
+attributed paid invoice revenue minus campaign cost, divided by cost; zero cost
+returns null with a reason. Attribution is a simple converted-lead/student join,
+not an exclusive marketing attribution model; duplicate lead links can inflate totals.
+Monthly summaries aggregate ledger timestamps in half-open month intervals and
+append numbered versions. Hourly catch-up covers fully elapsed missing months
+since first ledger activity. Neither campaign revenue nor pending invoice totals
+replace posted ledger revenue. FIN-01--12 map to Figures~\ref{fig:05-domain-classes},
+\ref{fig:08-erd-finance} and \ref{fig:12-payment-sequence}.
+
+\clearpage
+\section{HR workflows and payroll computation}
+\subsection{People and self-service}
+Recruitment stores positions and candidate stages. Hiring creates Employee and
+marks Candidate hired in one commit, leaving identity linkage null. General stage
+update accepts enum values without a recruitment transition graph; the hire path
+rejects an already-hired candidate. There is no complete employee CRUD or identity
+provisioning API. Staff self-service resolves employee from the verified user's UUID.
+
+AttendanceShift belongs to Employee and stores the current QR token ID. Issuing
+a token replaces that ID and gives a ten-minute token using a distinct HS256
+secret/audience. Check-in validates expiry/signature/current ID, employee ownership
+and shift/employee uniqueness. The UI accepts pasted token text; camera/biometric
+integration and actual presence verification are absent.
+
+Leave approval rejects self-approval and final-state redecision; decision and
+notification commit together for linked users. Notifications are fetched records,
+not real-time push. Performance reviews record actor, period, rating and comments.
+Asset movement locks Asset and checks aggregate assignment against stock;
+employee-specific return balance and employee-reference validation are not additional
+guarantees. Administrative screens remain placeholders.
+
+\subsection{Exact payroll algorithm}
+Let $G$ be gross monthly XAF, $C$ the CNPS ceiling, $r_e,r_m$ employee/employer rates,
+and $d$ the standard deduction. The implementation computes:
+\[
+ B=\min(G,C),\qquad E=B r_e,\qquad M=B r_m,\qquad
+ T=\max(0,(G-E)(1-d)).
+\]
+For ascending marginal brackets with lower/upper bounds $L_j,U_j$ and rate $r_j$:
+\[
+ I=\sum_j \max(0,\min(T,U_j)-L_j)r_j,\qquad
+ N=G-\operatorname{round}_{HU}(E)-\operatorname{round}_{HU}(I).
+\]
+The final open bracket has no fixed upper limit.
+CNPS, taxable base and tax are reported using whole-franc HALF\_UP rounding;
+tax is computed on the unrounded intermediate taxable value.
+Employer CNPS is reported separately, not deducted from employee net.
+
+\subsection{Release gate}
+A PayrollRun snapshots active-employee payslips for a unique institution/period.
+Only a draft backed by a manually verified schedule can be approved; only approved
+runs appear in employee self-service. Rate verification is a super-admin attestation,
+not validation against official CNPS/DGI publications. The selected version is explicit;
+the code does not automatically select the legally applicable version by run date.
+No payroll funds or finance event are sent. HR-01--11 map to
+Figures~\ref{fig:09-erd-hr}, \ref{fig:14-payroll-activity}, \ref{fig:15-leave-sequence}
+and \ref{fig:21-stock-activity}.
+
+\clearpage
+\section{Deployment, configuration and delivery pipeline}
+\subsection{Local runtime}
+Compose creates ten containers: four web APIs, two workers, frontend, gateway,
+PostgreSQL and RabbitMQ. API images use Python 3.13; frontend is built with Node 22
+and served by Nginx 1.27. Service APIs listen on 8000 internally, frontend/gateway
+on 80, database on 5432 and broker AMQP on 5672. Local gateway publishes 2022;
+broker management publishes loopback 15672. Domain APIs/databases are not public
+host listeners in the base stack. The test overlay changes development test exposure.
+
+The frontend Dockerfile runs \code{npm ci} and the TypeScript/Vite build, then copies
+\code{dist} into Nginx. Static Nginx provides SPA deep-link fallback and thirty-day
+immutable caching for selected asset extensions. Vite development proxies \code{/api}
+to the gateway on 2022; gateway-root \code{/healthz} is not covered by that Vite proxy.
+Keys are read-only mounted; production secrets must not use dev key material.
+
+\subsection{Delivery definitions versus execution evidence}
+Backend Jenkins defines contract tests, shared test PostgreSQL/key setup, a
+four-service lint/type/test/build matrix and database isolation tests.
+Coverage is gated at 70 percent. Frontend Jenkins defines install, lint/typecheck,
+coverage, application build and image build; its coverage configuration does not
+explicitly enforce the same numeric threshold.
+Neither root CI pipeline pushes images. The separate backend-owned promotion
+pipeline expects already published images and a paired frontend ref.
+
+Promotion specifies candidate contracts/E2E, human approval, image pull, backup gate,
+migrations, deploy, smoke and release recording. Controller validation, credentials,
+webhooks, registry publication, exact image provenance and live execution remain
+unverified. Calling a tag ``immutable'' does not enforce registry immutability,
+and the image template uses colon tag syntax rather than a dedicated digest field.
+
+\subsection{Production configuration gates}
+The override intends loopback gateway binding, pinned registry images and external
+keys. Environment and port merge semantics must be validated, not inferred from
+comments: development mode and insecure-cookie setting remain inherited.
+Host Nginx/TLS and domain provisioning are external prerequisites.
+Readiness endpoints check database connectivity; current deploy and monitoring
+loops primarily use liveness and do not establish worker or broker readiness.
+OPS-01--03 and UI-05 map to Figure~\ref{fig:16-deployment} and
+Appendix~\ref{app:operations}.
+
+\clearpage
+\section{Operational qualities, failure handling and evolution}
+\subsection{Observability and capacity}
+Application logging uses Python logging, plus Nginx access/error logs with request
+duration. This is not a deployed central log-aggregation service. A scheduled script
+checks gateway/service liveness, any enrollment DLQ messages, backlog above 100,
+disk at 85 percent and memory at 90 percent by default. It has no worker heartbeat,
+WAL age or backup freshness monitoring. HTTP readiness cannot certify successful
+message transfer.
+
+The historical local load report records 25 VUs for 90 seconds: read p95 882.9 ms
+and 0.48 percent errors. The proposed target is five minutes, p95 below 500 ms and
+error rate below one percent. The latency target is not met. Shared-host contention
+and per-request connection creation with SQLAlchemy NullPool are hypotheses,
+not proven causes. Query plans and dedicated-host measurements must precede tuning.
+
+\subsection{Recovery and rollback}
+The existing isolated PITR drill uses base backup and archived WAL with an explicit
+target time, reporting 21.8 seconds to restore a tiny test table. It is not the full
+ERP cluster and does not prove production RPO/RTO. Scheduled pgBackRest, encrypted
+off-host repository, retention and full event/session reconciliation remain targets.
+Deployment backup checks inspect filesystem freshness; the default WAL-age gate
+of fifteen minutes is weaker than the five-minute proposed RPO objective.
+
+Rollback is a manual image selection with schema-compatibility review; it must not
+be mistaken for database restoration. Production outages require an approved
+recovery point, isolated restore, broker/outbox/inbox reconciliation and session
+review before traffic returns. Figure~\ref{fig:17-recovery-activity} is explicitly
+a target runbook, not a performed exercise.
+
+\subsection{Evolution and verification}
+Stateless APIs and shared key/session persistence permit a conceptual replica
+strategy, but connection budgets, lock duration, summary-generation races, refresh
+concurrency and static upstream registration need validation first.
+Single-host replicas do not remove the host, database or broker failure domains.
+Figure~\ref{fig:18-scaling} marks this as conceptual.
+
+Prioritize missing required instructor/admin dashboards, CRUD coverage, effective
+production settings, credentialed-or-disclosed payment integration and evidence
+collection. Preserve event compatibility and explicit ownership during change.
+The SRS traceability matrix covers unit/integration/E2E assets; appended design
+decisions explain known trade-offs rather than concealing them.
+
+\clearpage
+\appendix
+\section{Design decisions, consistency and data rationale}\label{app:decisions}
+\subsection{Decision register}
+\small
+\begin{longtable}{@{}L{16mm}L{37mm}L{107mm}@{}}
+\toprule ID & Decision & Rationale, consequence and verification\\\midrule\endfirsthead
+\toprule ID & Decision & Rationale, consequence and verification\\\midrule\endhead
+\bottomrule\endfoot
+DD-01 & Four service databases & Domain ownership meets the brief; one cluster reduces local resource cost but shares failure/capacity. Verify database connection isolation.\\
+DD-02 & REST plus enrollment events & Interactive API contracts remain simple; outbox avoids enrollment dependence on Finance availability. UI must represent eventual invoice creation.\\
+DD-03 & Transactional outbox/inbox & Local commits plus idempotent consumer prevent ordinary lost/duplicate business effects. Publish-before-mark crash replay is expected.\\
+DD-04 & RS256 and rotating cookies & Resource services need only public key; refresh-token hashes reduce raw-token exposure. Stateless access tokens cannot be immediately revoked by refresh logout alone.\\
+DD-05 & Forced RLS + app context & Database policies add tenant enforcement to API checks; owner roles require FORCE. Internal platform contexts and non-RLS plumbing are explicit exceptions.\\
+DD-06 & Protocol-based provider adapter & Real and deterministic providers share request/status contracts; fake is stateless across processes. No live-sandbox evidence is claimed.\\
+DD-07 & Whole-XAF money & Integers avoid binary decimal-money error; Decimal supports payroll rates. Browser numbers must stay within JavaScript safe integer bounds; no numeric boundary policy is yet enforced across all surfaces.\\
+DD-08 & Financial snapshots & Receipts, payslips and numbered monthly summaries preserve historical output at creation. These intentional derived records are not a claim of strict normalization of every relation.\\
+DD-09 & Local advisory/row locks & Exam term lock, payment row locks and asset lock protect specific invariants. Other workflows cannot inherit concurrency guarantees from these examples.\\
+DD-10 & React Query + service adapters & Separates server cache, form state and transport shape. Per-principal cache invalidation and full runtime response validation remain gaps.\\
+DD-11 & Manual payroll attestation & Prevents unverified schedules from backing approval; requires human statutory evidence. Boolean attestation does not preserve who verified or authoritative source provenance.\\
+DD-12 & Single-host Compose & Practical local and constrained-host demonstration; Kubernetes and full monitoring cluster are not prerequisites. Production isolation/TLS/backup still require configuration.\\
+DD-13 & Explicit partial delivery & Placeholder pages communicate absence rather than fake analytics. Required dashboards and lifecycle APIs remain acceptance work, not silently excluded scope.\\
+\end{longtable}\normalsize
+
+\subsection{Normalization and denormalization}
+Institution and user facts are separated in Identity. Academic separates
+program, course and term from offering, enrollment, registration and assessment.
+Prerequisite edges resolve the course-to-course relationship without repeated lists.
+Finance separates fee configuration from issued invoices and payment attempts.
+HR separates recruitment, employee, shift, leave, review, schedule and run.
+These structures reduce update anomalies and generally follow dependency separation
+appropriate to 3NF-oriented transactional design.
+
+The model intentionally retains repeated \code{institution_id} for tenant policy
+evaluation. Refresh sessions copy tenant identity from user at issue time.
+Invoice amount snapshots a configured fee; payroll payslips snapshot computed amounts;
+financial summaries store versioned aggregates. Outbox payloads and payroll brackets
+use JSONB/list-shaped data. Such structures need invariants and provenance rather
+than a blanket assertion that every relation is strictly in 3NF. No formal
+functional-dependency proof or EXPLAIN comparison is supplied in the baseline.
+
+\subsection{Key constraints and ownership exceptions}
+\begin{itemize}
+\item \textbf{Identity:} institution slug, user email and refresh-token hash uniqueness;
+nullable user institution for platform use.
+\item \textbf{Academic:} enrollment student/program/term; course program/code within institution;
+prerequisite edge; offering course/term; grade assessment/student; exam one-per-offering.
+\item \textbf{Finance:} fee tenant/program/term; invoice tenant/enrollment; inbox event primary
+key; provider reference; partial active-intent uniqueness; receipt invoice uniqueness;
+summary tenant/period/version.
+\item \textbf{HR:} payroll tenant/period; payslip tenant/employee/period; attendance shift/employee.
+Some same-database identifiers intentionally lack foreign keys, including payslip employee,
+asset-movement employee and receipt references.
+\end{itemize}
+Cross-service user/student/program/enrollment IDs remain opaque UUIDs.
+An ERD dotted relationship is a logical lookup, not a database-enforced FK.
+The generated dictionary records only declared column metadata; migrations remain
+authoritative for composite/partial indexes and RLS policies.
+
+\subsection{Transaction and concurrency matrix}
+\begin{tabularx}{\textwidth}{@{}L{35mm}Y Y@{}}
+\toprule Workflow & Atomic unit / lock & Residual qualification\\\midrule
+Enrollment & Enrollment + outbox commit & Duplicate pre-check alone is not the concurrency boundary; DB uniqueness is final.\\
+Outbox publish & Row locks, confirms, publication timestamp & Confirm and DB commit are separate durability systems; replay possible.\\
+Invoice consumption & Inbox + invoice commit & Missing fees roll back and dead-letter; unsupported-version enforcement incomplete.\\
+Payment settlement & Intent/invoice row locks; status + ledger + receipt & External status I/O extends lock lifetime.\\
+Expense & Expense + balanced ledger commit & Balance is application-checked, not a cross-row database constraint.\\
+Exam & Institution/term advisory transaction lock & No cross-term resource check.\\
+Grade appeal & Decision + changed score + audit commit & No explicit row lock in decision path; direct grade edits bypass appeal audit.\\
+Leave & Decision + notification commit & Concurrent approval race needs independent acceptance testing.\\
+Payroll run & Run + all payslips commit & Statutory validation/manual approval are separate operations.\\
+Assets & Asset row lock + movement commit & Aggregate stock protected; per-employee over-return is not independently checked.\\
+\bottomrule
+\end{tabularx}
+
+\clearpage
+\section{Detailed frontend integration and UX coverage}\label{app:frontend}
+\subsection{Frontend-to-API mapping}
+\small
+\begin{longtable}{@{}L{31mm}L{64mm}L{65mm}@{}}
+\toprule Component / service & HTTP interaction & Refresh behavior and limitation\\\midrule\endfirsthead
+\toprule Component / service & HTTP interaction & Refresh behavior and limitation\\\midrule\endhead
+\bottomrule\endfoot
+AuthProvider & POST \code{/auth/refresh}; GET \code{/auth/me} & Restore on mount; principal set after both succeed.\\
+LoginPage & POST \code{/auth/login}; GET \code{/auth/me} & Form validation precedes request; redirects to remembered pathname.\\
+AppShell & POST \code{/auth/logout} & Access memory cleared by service finally; shared query cache is not cleared.\\
+EnrollmentPage & GET academic programs/terms/enrollments; POST enrollments & Invalidates enrollments; new enrollment invoice polls at 2 s. Non-student queries can start before the placeholder branch.\\
+InvoiceCell & GET finance invoices filtered by enrollment ID & Null means invoice not yet generated; only just-created enrollment has interval polling.\\
+CoursesPanel & GET courses, offerings, registrations, own at-risk; POST registration & Invalidate registrations and at-risk on successful registration.\\
+CourseGrades & GET offering assessments, then assessment grades; POST grade appeal & Lazy queries when expanded; submitted-appeal indication is local component state, not loaded appeal history.\\
+Academic reports & GET transcript / attendance-summary & Blob download with fixed file names; rejected downloads lack a complete UI error flow.\\
+FinancePage & GET finance invoices & Student-only displayed content; invalidates own invoices on payment success.\\
+PayForm & POST invoice payment-intent; GET payment-intent & Local intent ID; 1.5 s poll when data status is pending; failure allows retry. No reload restoration of pending intent selection.\\
+Receipt & GET invoice receipt & Offered for paid row; PDF download.\\
+LeaveSection & GET leave requests/mine; POST leave requests & Invalidates own leave list; no automatic live approval updates.\\
+AttendanceSection & GET attendance/mine; POST attendance/check-in & Manual token entry; invalidate attendance after success.\\
+PayslipsSection & GET payroll/payslips/mine & Displays saved whole-XAF gross/CNPS/IRPP/net; no approval UI.\\
+NotificationsSection & GET notifications/mine; POST notification/read & Invalidates notification query on read; no timed polling or push.\\
+SystemStatusPage & GET gateway and service \code{healthz} paths & Five liveness cards; page reload rechecks. No readiness or worker state.\\
+\end{longtable}\normalsize
+All business paths above begin with \code{/api/v1}; prefixes are abbreviated for
+readability. Identity uses \code{/auth}, HR \code{/hr}, Finance \code{/finance}
+and Academic \code{/academic}. See service adapter files for exact path assembly.
+
+\subsection{UI role matrix}
+\begin{tabularx}{\textwidth}{@{}L{31mm}L{26mm}L{26mm}Y@{}}
+\toprule Page & Student & Staff & Admin / super-admin\\\midrule
+Overview / Status & Visible & Visible & Visible; overview is welcome-only.\\
+Academic & Functional self-service & Placeholder & Placeholder.\\
+Finance & Functional payment portal & Placeholder & Placeholder.\\
+People & Placeholder & Functional own workspace & Placeholder despite backend admin capabilities.\\
+Settings & Placeholder & Placeholder & Placeholder.\\
+\bottomrule
+\end{tabularx}
+All navigation items are rendered to authenticated users. This is explicit incomplete
+feature delivery, not a permission model implemented through hiding links.
+The frontend's four role values match backend roles, but department-specific
+role separation is not implemented.
+
+\subsection{Response/error contracts and data lifecycle}
+HTTP adapters translate fields, not domain rules. Pydantic is server validation;
+Zod covers selected input forms. The generic JSON helper uses type assertions and
+does not validate arbitrary server responses at runtime. A structured \code{detail}
+object can be reduced to an unhelpful string by generic error formatting.
+Payment-poll request errors may leave a waiting message; individual grade-query
+errors can resemble ``Not graded''. Mark-read mutation errors and download promise
+failures need dedicated user feedback.
+
+Query cache uses one application-level client, while access identity changes in
+AuthProvider. A robust next revision should cancel/clear principal-owned queries
+on logout/session replacement and include stable principal scope where appropriate.
+That is a target design, not an implemented property of this baseline.
+
+\subsection{Accessibility and responsive verification scope}
+Source supplies visible form labels, focus styles, a skip link, loading status
+indicators and reduced-motion support on login/status animations. Manual attendance
+code entry avoids dependence on a camera. Existing E2E assets check login, keyboard
+flow, invalid credentials and reduced motion, plus a shared authenticated staff
+session across overview, people, finance placeholder and status at four viewports:
+360x800, 768x1024, 1440x900 and 1920x1080.
+The suite deliberately avoids reusing one rotating cookie in many browser contexts.
+It is not coverage of every student/admin workflow or full WCAG conformance.
+Desktop logout placement, mobile focus/menu behavior and missing error paths need
+manual review. No fresh E2E run is claimed by this documentation build.
+
+\clearpage
+\section{Message, API and numerical contracts}\label{app:contracts}
+\subsection{EnrollmentAccepted.v1 envelope}
+\begin{lstlisting}
+{
+  "event_id": "<outbox UUID>",
+  "event_type": "academic.enrollment_accepted",
+  "schema_version": 1,
+  "tenant_id": "<institution UUID>",
+  "occurred_at": "<UTC ISO-8601 timestamp>",
+  "correlation_id": "<workflow UUID>",
+  "data": {
+    "enrollment_id": "<UUID>",
+    "student_id": "<UUID>",
+    "program_id": "<UUID>",
+    "term_id": "<UUID>"
+  }
+}
+\end{lstlisting}
+The placeholders are explanatory, not a schema-valid fixture. Use the checked-in
+\code{contracts/events/examples/enrollment-accepted.v1.example.json} for executable
+contract validation. RabbitMQ routing key carries \code{.v1}; envelope event type
+does not. Exchange \code{erp.events} is durable topic; queue
+\code{finance.enrollment_accepted} binds \code{academic.enrollment_accepted.*}.
+Rejected messages route via direct \code{erp.dlx} to
+\code{finance.enrollment_accepted.dlq}.
+
+\textbf{Consumer qualification:} the runtime parses selected fields and UUIDs but
+does not fully validate schema version/type, envelope shape and every schema field.
+Contract-example tests are separate from runtime consumer validation. Broker
+authentication/topology are the trust boundary; the envelope is not cryptographically
+signed. Ordering across workers is not a global business guarantee.
+
+\subsection{API examples and status semantics}
+\begin{lstlisting}
+POST /api/v1/academic/enrollments
+Authorization: Bearer <access-token>
+Content-Type: application/json
+{"program_id":"<UUID>","term_id":"<UUID>"}
+
+POST /api/v1/finance/invoices/<UUID>/payment-intents
+{"payer_msisdn":"<synthetic test number>"}
+
+POST /api/v1/hr/leave/requests
+{"starts_on":"2026-10-05","ends_on":"2026-10-06","reason":"Example"}
+\end{lstlisting}
+Academic 201 means enrollment accepted, not invoice paid or generated.
+Finance intent 201 means locally persisted attempt, not provider settlement.
+HR approval responses record business decisions, not external notification delivery.
+404 may deliberately conceal an unauthorized owned resource. The gateway can
+generate 429 without the application handler running. Readiness can return 503.
+All examples use placeholders or synthetic dates and contain no real credentials.
+
+\subsection{At-risk and finance examples}
+At-risk attendance uses present records divided by all sessions of an offering.
+Missing marks do not count present. The grade signal averages the latest two
+published normalized scores by assessment creation order; one grade is insufficient.
+For latest percentages 40 and 55, mean 47.5 flags risk even though both individual
+grades are not failures. Scores 40 and 60 average 50 and do not trigger that signal.
+Exactly 75 percent attendance is not below threshold.
+
+For campaign cost 100,000 XAF and attributed paid tuition 150,000 XAF,
+ROI is 0.5, conventionally displayed as 50 percent. This arithmetic example does
+not correct duplicate lead attribution in the query. Monthly net is posted tuition
+revenue credits minus expense debits; it is not an accrual balance sheet or a tax return.
+
+\subsection{Illustrative payroll calculation, not statutory rates}
+For a deliberately synthetic test schedule with gross 100,000, ceiling 80,000,
+employee rate 0.04, employer rate 0.08, deduction 0.30 and a single 10-percent
+tax bracket: employee CNPS is 3,200; employer CNPS 6,400; taxable base 67,760;
+IRPP 6,776; net 90,024 XAF. These are invented arithmetic-test inputs,
+\emph{not published Cameroonian rates}. Real usage requires verified effective-period
+CNPS/DGI sources and review of monthly versus annual bracket conventions.
+
+\clearpage
+\section{UML and architecture diagram suite}\label{app:diagrams}
+This suite exceeds the brief's required use-case, class, two sequence, ERD and
+deployment views. All diagrams are editable PlantUML. PNG renders are embedded
+for portable LaTeX builds; SVG renders accompany the package for zoomable inspection.
+Diagram sheets use A3 or A2 page sizes so dense architecture and sequence views
+are not reduced to unreadable A4 thumbnails; narrative and tables remain A4.
+Selected-field ERDs must be read with the full generated dictionary and migrations.
+SRS and SDD share context/use-case sources to avoid contradictory duplicate artwork.
+\diagram{01-context}{System context}{Frontend and backend share a product boundary;
+external provider and operator prerequisites are explicitly identified.}
+\diagram{02-use-cases}{Actor and use-case model}{Implemented APIs and self-service
+screens are distinguished from administrative UI gaps.}
+\diagram[wide]{03-components}{Runtime component architecture}{Database ownership, API
+routing and the broker-mediated cross-service flow are explicit.}
+\diagram{04-frontend}{Frontend composition and transport}{Provider, router, page,
+adapter, cache and token responsibilities reflect the React source.}
+\diagram[large-wide]{05-domain-classes}{Implementation class collaboration}{Real protocol,
+ORM, dataclass and module-function concepts; no invented shared service framework.}
+\diagram{06-erd-identity}{Identity entity relationship model}{Nullable tenant
+context and refresh-family storage are shown with local foreign keys.}
+\diagram{07-erd-academic}{Academic entity relationship model}{Curriculum, enrollment,
+teaching records and outbox are distinct; dotted outbox linkage is not a foreign key.}
+\diagram{08-erd-finance}{Finance entity relationship model}{Payment and receipt
+associations, ledger grouping and analytical projections distinguish logical from FK relationships.}
+\diagram[wide]{09-erd-hr}{HR entity relationship model}{Employee linkage, payroll snapshots,
+leave notifications and stock movements show local and unenforced references.}
+\diagram[large]{10-session-sequence}{Session authentication sequence}{Gateway delegation,
+independent validation, rotation and sequential reuse rejection are separate steps.}
+\diagram[large]{11-enrollment-sequence}{Enrollment-to-invoice sequence}{Two local ACID
+transactions surround at-least-once broker transfer and explicit failure paths.}
+\diagram[large]{12-payment-sequence}{Payment settlement sequence}{Durable intent precedes
+provider I/O; reconciliation atomically applies the financial effect.}
+\diagram{13-appeal-states}{Grade appeal state machine}{Only implemented transitions
+are shown; accepted corrections have explicit score and audit guards.}
+\diagram[large]{14-payroll-activity}{Payroll generation and approval activity}{Pure calculation,
+snapshot creation and manual statutory verification are separate responsibilities.}
+\diagram{15-leave-sequence}{Leave decision and notification sequence}{Decision
+segregation and in-app notification persistence are shown without fictitious email delivery.}
+\diagram[large-wide]{16-deployment}{Container deployment view}{All ten Compose containers,
+volumes and network paths are distinguished from unverified production intentions.}
+\diagram{17-recovery-activity}{Target full-system recovery activity}{This is a proposed
+operational procedure, not the already-run single-table PITR drill.}
+\diagram[wide]{18-scaling}{Conceptual scaling design}{Replica groups are design candidates;
+shared infrastructure and concurrency limits remain explicit.}
+\diagram{19-browser-session}{Browser session state machine}{Startup restoration and
+reactive 401 handling are modeled without a nonexistent proactive expiry timer.}
+\diagram{20-exam-activity}{Exam scheduling conflict activity}{The actual
+institution/term lock and interval conflict checks define the protected invariant.}
+\diagram{21-stock-activity}{Aggregate stock movement activity}{The flow protects
+aggregate on-hand quantity, not an unimplemented per-employee return constraint.}
+
+\clearpage
+\section{Generated service-local route catalogue}\label{app:routes}
+Generated by \code{inventory.py} from Python syntax trees without importing services,
+connecting to a database or reading secrets. It enumerates actual decorated handlers
+and router prefixes. Health and internal routes are service-local, not necessarily
+public gateway routes. Return annotations may name ORM classes where no explicit
+response model is declared. Access policy is explained in the SRS role matrix and
+the owning handler; the table is not a runtime OpenAPI export.
+\input{generated/endpoints}
+
+\clearpage
+\section{Generated persisted-model dictionary}\label{app:models}
+The catalogue lists mapped-column attributes, Python ORM annotations and explicit
+column-level metadata. It intentionally excludes ORM relationship properties.
+An omitted \code{nullable} keyword does not prove nullability; consult SQLAlchemy
+annotation inference and the migration DDL. Composite/partial uniqueness, CHECKs,
+indexes and RLS policies must be read from model table arguments and migrations.
+The four ERDs provide navigable structure; this appendix provides field detail.
+\input{generated/models}
+
+\clearpage
+\section{Setup, validation and operational handover}\label{app:operations}
+\subsection{Clean local setup sequence}
+Prerequisites: Docker with Compose v2 supporting the override tags used by this
+repository; sibling frontend checkout; Python 3.13 for service checks; Node 22 for
+frontend local builds. Choose an isolated local environment and synthetic records.
+The following commands are an operator guide, not commands executed by the document build.
+\begin{lstlisting}
+# From ERP_System_backend; preserve an existing .env.
+Copy-Item .env.example .env
+Set-Location services\identity
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe ..\..\scripts\generate_dev_jwt_keys.py
+Set-Location ..\..
+docker compose up -d --build
+docker compose exec identity python -m alembic upgrade head
+docker compose exec academic python -m alembic upgrade head
+docker compose exec finance python -m alembic upgrade head
+docker compose exec hr python -m alembic upgrade head
+docker compose exec identity python -m scripts.seed
+docker compose exec academic python -m scripts.seed
+docker compose exec finance python -m scripts.seed
+docker compose exec hr python -m scripts.seed
+\end{lstlisting}
+Do not overwrite an existing environment file without reviewing it. Use the matching
+interpreter for your platform, rather than blindly copying a machine-specific executable.
+Seed outputs are development credentials and fixtures, not real accounts.
+Verify seed identifier alignment, fee schedules and employee/user linkage before
+demonstrating dependent workflows. Never run seed scripts against production records.
+Start with gateway \code{http://localhost:2022}; inspect each API's \code{readyz},
+not only gateway liveness. Workers have no Compose health check; verify event
+transfer by enrolling a synthetic student and observing a Finance invoice.
+
+\subsection{Existing test/build entry points}
+\begin{tabularx}{\textwidth}{@{}L{32mm}Y@{}}
+\toprule Scope & Existing commands / conditions\\\midrule
+Backend service & In each service: \code{ruff check .}, \code{mypy app}, \code{pytest --cov=app --cov-fail-under=70}; install that service's dev requirements and provide migrated PostgreSQL/key configuration as its fixtures require.\\
+Contracts & In \code{contracts}: install declared requirements; run \code{pytest}.\\
+Isolation & Run \code{tests/integration/test_db_isolation.py} against the isolated configured test cluster.\\
+Frontend & \code{npm ci}, \code{npm run lint}, \code{npm run typecheck}, \code{npm run test:coverage}, \code{npm run build}.\\
+Frontend E2E & \code{npm run test:e2e}; requires live gateway, dedicated seeded credentials and browser installation. Reusing a rotating cookie across independent contexts is invalid.\\
+Documentation & Run \code{docs/specifications/build.ps1} with local Java/PlantUML, Python and Tectonic paths; see package README.\\
+\bottomrule
+\end{tabularx}
+Documentation validation does not mutate runtime data or substitute for these
+application tests. Test evidence must identify both frontend and backend revisions.
+
+\subsection{Operational handover gates}
+\begin{enumerate}
+\item Confirm domain, certificate, effective environment, cookie flags, listener binding
+and unique secrets before opening a production origin.
+\item Provision an image publication process; record frontend/backend refs and actual
+image digests. Validate Jenkins syntax and credentials against the real controller.
+\item Establish off-host backup, WAL continuity, retention and monitoring; test a
+representative full-cluster restore and event reconciliation.
+\item Validate provider mode and payroll rate sources; keep simulations explicit.
+\item Resolve mandatory UI/API gaps and collect real coverage, EXPLAIN/load and issue-board evidence.
+\item Review legacy comments and historical reports for drift; source and verified
+effective runtime configuration remain the authoritative implementation evidence.
+\end{enumerate}
+
+\subsection{Documentation verification contract}
+The build regenerates route/model tables, renders PlantUML locally to PNG/SVG and
+compiles both PDFs with Tectonic. It fails on diagram/compiler errors, undefined
+references or overfull boxes. PDF pagination, extractable text and rendered diagram
+legibility are checked separately during preparation. No source or diagram text
+is submitted to a public PlantUML server; downloaded tools/typesetting packages
+do not require sending repository content.
+
+\subsection{References and disclosure}
+Primary stakeholder source is the supplied SEN4121 Summer 2026 brief.
+Implementation references are backend \texttt{6e10c54}, frontend \texttt{6cc6859},
+and the exact source paths in the SRS and generated appendices.
+Historical measurements come only from \code{docs/performance.md} and
+\code{docs/backup-recovery.md}. The diagrams and narrative are AI-assisted original
+documentation of this project, not copied standard text. Team review, signature,
+individual contribution statements and disclosure at defense are still required.
+\end{document}

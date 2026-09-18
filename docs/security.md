@@ -65,7 +65,9 @@ document draws on.
 - Gateway now sends baseline hardening headers on every response
   (`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
   `Referrer-Policy: strict-origin-when-cross-origin`, a restrictive
-  `Permissions-Policy`, and a same-origin `Content-Security-Policy` with no
+  `Permissions-Policy` (geolocation and microphone fully disabled; `camera`
+  narrowed to `self` because the HR shift check-in scanner reads the shift QR
+  code via `getUserMedia`), and a same-origin `Content-Security-Policy` with no
   `unsafe-inline`/`unsafe-eval`) - added and verified this phase against a
   real running build (confirmed zero CSP console violations after fixing
   `font-src` to allow the app's self-hosted `data:`-embedded webfonts).

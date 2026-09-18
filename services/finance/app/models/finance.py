@@ -17,7 +17,7 @@ class InvoiceStatus(str, enum.Enum):
 class FeeSchedule(Base):
     """Configured independently by finance (admin-only) - academic's
     program_id/term_id are trusted opaque references here too, the same way
-    campus_id is trusted on academic's own Enrollment (no cross-service FK).
+    student_id is trusted from academic's own Enrollment (no cross-service FK).
     """
 
     __tablename__ = "fee_schedules"

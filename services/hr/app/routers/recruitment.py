@@ -19,8 +19,8 @@ from app.schemas import (
 
 router = APIRouter()
 
-_HR_ADMIN_ROLES = ("admin", "super_admin")
-_STAFF_ROLES = ("admin", "staff", "super_admin")
+_HR_ADMIN_ROLES = ("admin",)
+_STAFF_ROLES = ("admin", "lecturer", "finance_staff", "marketing")
 
 
 @router.post("/positions", response_model=PositionResponse, status_code=status.HTTP_201_CREATED)
@@ -49,6 +49,26 @@ async def list_positions(
     return list(result.scalars().all())
 
 
+@router.post("/positions/{position_id}/close", response_model=PositionResponse)
+async def close_position(
+    position_id: uuid.UUID,
+    claims: dict = Depends(require_roles(*_HR_ADMIN_ROLES)),
+    session: AsyncSession = Depends(get_tenant_session),
+) -> Position:
+    """Stops the position accepting new candidates. Anyone already in the
+    pipeline keeps their stage and can still be hired.
+    """
+    position = await session.get(Position, position_id)
+    if position is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Position not found")
+    if position.status == PositionStatus.CLOSED:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Position is already closed")
+
+    position.status = PositionStatus.CLOSED
+    await session.commit()
+    return position
+
+
 @router.post("/candidates", response_model=CandidateResponse, status_code=status.HTTP_201_CREATED)
 async def create_candidate(
     payload: CandidateCreateRequest,
@@ -58,6 +78,11 @@ async def create_candidate(
     position = await session.get(Position, payload.position_id)
     if position is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Position not found")
+    if position.status == PositionStatus.CLOSED:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="That position is closed and is no longer accepting candidates",
+        )
 
     candidate = Candidate(
         institution_id=uuid.UUID(claims["tenant_id"]),
@@ -129,3 +154,16 @@ async def hire_candidate(
     session.add(employee)
     await session.commit()
     return employee
+
+
+@router.get("/employees", response_model=list[EmployeeResponse])
+async def list_employees(
+    claims: dict = Depends(require_roles(*_HR_ADMIN_ROLES)),
+    session: AsyncSession = Depends(get_tenant_session),
+) -> list[Employee]:
+    """Admin-only: the roster carries salary, so it stays above the staff band.
+    Shift, review and asset-assignment forms all need this to resolve an
+    employee_id without asking an admin to paste a UUID.
+    """
+    result = await session.execute(select(Employee).order_by(Employee.full_name))
+    return list(result.scalars().all())

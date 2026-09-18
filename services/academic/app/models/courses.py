@@ -18,7 +18,7 @@ class Course(Base):
     )
     code: Mapped[str] = mapped_column(String(50), nullable=False)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
-    credits: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
+    credits: Mapped[int] = mapped_column(Integer, nullable=False, default=6)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (
@@ -54,7 +54,7 @@ class CoursePrerequisite(Base):
 class CourseOffering(Base):
     """A course as taught in a specific term by a specific instructor - NOT
     the exam time (see ExamSchedule). instructor_id is an opaque identity
-    user id, trusted the same way Enrollment.campus_id is.
+    user id, trusted the same way Enrollment.student_id is.
     """
 
     __tablename__ = "course_offerings"

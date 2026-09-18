@@ -1,0 +1,37 @@
+@startuml
+!include theme.puml
+title Exam scheduling | Serialized conflict decision
+start
+:Load target offering in tenant context;
+if (Offering found and actor authorized?) then (no)
+  :404 or 403;
+  stop
+endif
+if (starts_at < ends_at?) then (no)
+  :400 Invalid interval;
+  stop
+endif
+:Acquire transaction advisory lock\nhash(institution_id : term_id);
+:Find overlapping exams within SAME TERM;\nexclude current exam when rescheduling;
+if (Same room overlaps?) then (yes)
+  :409 room conflict;
+  stop
+endif
+if (Same instructor overlaps?) then (yes)
+  :409 instructor conflict;
+  stop
+endif
+if (Any shared registered student overlaps?) then (yes)
+  :409 student conflict;
+  stop
+endif
+:Insert exam OR update room/start/end;\nunique offering exam constraint;
+:Commit and release transaction lock;
+:Return scheduled exam;
+stop
+legend bottom
+  Overlap: existing.start < requested.end AND existing.end > requested.start
+  Adjacent endpoints do not overlap; checks are scoped to institution + term
+  Backend workflow exists; instructor exam UI is not implemented
+endlegend
+@enduml

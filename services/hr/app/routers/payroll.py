@@ -21,9 +21,8 @@ from app.schemas import (
 
 router = APIRouter()
 
-_HR_ADMIN_ROLES = ("admin", "super_admin")
-_STAFF_ROLES = ("admin", "staff", "super_admin")
-_SUPER_ADMIN_ONLY = ("super_admin",)
+_HR_ADMIN_ROLES = ("admin",)
+_STAFF_ROLES = ("admin", "lecturer", "finance_staff", "marketing")
 
 
 @router.post("/payroll/schedules", response_model=PayrollScheduleResponse, status_code=status.HTTP_201_CREATED)
@@ -46,6 +45,7 @@ async def create_schedule_version(
         cnps_ceiling_xaf=payload.cnps_ceiling_xaf,
         standard_deduction_rate=payload.standard_deduction_rate,
         irpp_brackets=[bracket.model_dump(mode="json") for bracket in payload.irpp_brackets],
+        created_by=uuid.UUID(claims["sub"]),
     )
     session.add(schedule)
     await session.commit()
@@ -66,20 +66,33 @@ async def list_schedule_versions(
 @router.patch("/payroll/schedules/{schedule_id}/verify", response_model=PayrollScheduleResponse)
 async def verify_schedule_version(
     schedule_id: uuid.UUID,
-    claims: dict = Depends(require_roles(*_SUPER_ADMIN_ONLY)),
+    claims: dict = Depends(require_roles(*_HR_ADMIN_ROLES)),
     session: AsyncSession = Depends(get_tenant_session),
 ) -> PayrollScheduleVersion:
     """This endpoint does not itself validate anything - calling it is a
-    manual attestation by a super_admin that they have personally checked
-    every rate/bracket in this schedule against an authoritative CNPS/DGI
-    source for the effective period. Only a verified schedule can back an
-    approved (immutable) payroll run - see the payroll run approval
-    endpoint below.
+    manual attestation that the caller has personally checked every
+    rate/bracket in this schedule against an authoritative CNPS/DGI source
+    for the effective period. Only a verified schedule can back an approved
+    (immutable) payroll run - see the payroll run approval endpoint below.
+
+    Four-eyes: the author of a schedule may not verify their own, so setting
+    the rates and attesting to them are always two different people.
     """
     schedule = await session.get(PayrollScheduleVersion, schedule_id)
     if schedule is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Schedule version not found")
+
+    verifier_id = uuid.UUID(claims["sub"])
+    if schedule.created_by is not None and schedule.created_by == verifier_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="A payroll schedule must be verified by someone other than its author",
+        )
+    if schedule.is_verified:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Schedule already verified")
+
     schedule.is_verified = True
+    schedule.verified_by = verifier_id
     await session.commit()
     return schedule
 

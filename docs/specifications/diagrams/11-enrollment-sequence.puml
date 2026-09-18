@@ -1,0 +1,127 @@
+@startuml
+!include theme.puml
+skinparam maxMessageSize 180
+title Enrollment -> invoice | Asynchronous transaction boundaries
+autonumber
+participant "Student UI\nvia gateway" as UI
+participant "Academic API" as A
+database academic_db as AD
+participant "Academic worker" as AW
+queue "RabbitMQ\nerp.events" as MQ
+participant "Finance consumer" as F
+database finance_db as FD
+queue "Finance DLQ" as DLQ
+participant "Finance API" as API
+activate UI
+UI -> A : POST enrollment
+activate A
+A -> A : Verify caller / program / term / duplicate
+group Academic ACID transaction
+  A -> AD : INSERT accepted enrollment + outbox event\nwith correlation_id; COMMIT both
+  activate AD
+  AD --> A : Enrollment and event committed
+  deactivate AD
+end
+A --> UI : 201 enrollment (invoice may not exist)
+deactivate A
+deactivate UI
+loop Every 2 seconds; batch <= 20
+  activate AW
+  AW -> AD : Lock unpublished rows\nFOR UPDATE SKIP LOCKED
+  activate AD
+  AD --> AW : Batch of unpublished events (locks retained)
+  deactivate AD
+  AW ->> MQ : Persistent message; routing key\nacademic.enrollment_accepted.v1
+  activate MQ
+  MQ -->> AW : Publisher confirm
+  deactivate MQ
+  AW -> AD : Set published_at; COMMIT
+  activate AD
+  AD --> AW : Published marker committed; release locks
+  deactivate AD
+  deactivate AW
+end
+note over AW,MQ
+Broker failure leaves row unpublished.
+Crash after confirmed publish but before DB commit can replay.
+This is at-least-once delivery, NOT exactly-once messaging.
+end note
+activate MQ
+MQ ->> F : Deliver durable queue message
+deactivate MQ
+activate F
+F -> F : Parse fields + UUIDs\n(no full runtime JSON Schema dispatch)
+group Finance local transaction
+  F -> FD : Platform context; INSERT inbox event_id
+  activate FD
+  alt Duplicate event ID
+    FD --> F : Unique violation
+  else New event ID
+    FD --> F : Inbox row inserted (uncommitted)
+  end
+  deactivate FD
+  alt Duplicate event ID
+    F -> FD : ROLLBACK
+    activate FD
+    FD --> F : Rolled back
+    deactivate FD
+    F ->> MQ : ACK duplicate
+    activate MQ
+    MQ -> MQ : Record acknowledgement
+    deactivate MQ
+  else New event ID
+    F -> FD : Find tenant/program/term fee
+    activate FD
+    FD --> F : Matching fee or no match
+    deactivate FD
+    alt Fee missing
+      F -> FD : ROLLBACK inbox
+      activate FD
+      FD --> F : Rolled back
+      deactivate FD
+      F ->> MQ : Reject(requeue=false)
+      activate MQ
+      MQ ->> DLQ : Dead-letter for investigation
+      activate DLQ
+      DLQ -> DLQ : Retain rejected message
+      deactivate DLQ
+      deactivate MQ
+    else Fee found
+      F -> FD : INSERT invoice; unique tenant/enrollment\nCOMMIT invoice + inbox
+      activate FD
+      FD --> F : Invoice and inbox committed
+      deactivate FD
+      F ->> MQ : ACK after commit
+      activate MQ
+      MQ -> MQ : Record acknowledgement
+      deactivate MQ
+    end
+  end
+end
+deactivate F
+note over F,FD
+Duplicate enrollment under a different event ID is also ACKed
+after rollback on the invoice uniqueness path.
+Transient processing failure -> NACK(requeue=true).
+end note
+activate UI
+UI -> API : GET invoices?enrollment_id=...\nthrough gateway
+activate API
+API -> FD : Tenant + student scoped lookup
+activate FD
+FD --> API : Invoice records
+deactivate FD
+API --> UI : Empty list until available, then invoice
+deactivate API
+deactivate UI
+note right of UI
+UI polls every 2 s for the newly created enrollment.
+Browser never connects directly to either database.
+end note
+legend bottom
+  Activation bars: handler, query or broker-processing scope; not a distributed transaction.
+  Solid filled-arrow calls / dashed returns: synchronous request and response.
+  Open-arrow messages: asynchronous publication, delivery, confirmation and acknowledgement.
+  Database row locks outlive a query's activation until COMMIT / ROLLBACK.
+endlegend
+@enduml

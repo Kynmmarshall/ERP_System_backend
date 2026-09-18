@@ -6,7 +6,9 @@
 # must be investigated by a human, never silently continued.
 set -euo pipefail
 
-COMPOSE_FILES="-f docker-compose.yml -f docker-compose.prod.yml"
+# Overridable so a single-VPS deploy can point at docker-compose.vps.yml
+# (images built on the box) instead of the registry-pinned prod file.
+COMPOSE_FILES="${COMPOSE_FILES:--f docker-compose.yml -f docker-compose.prod.yml}"
 SERVICES=(identity academic finance hr)
 
 cd "${DEPLOY_PATH:?DEPLOY_PATH must be set}"

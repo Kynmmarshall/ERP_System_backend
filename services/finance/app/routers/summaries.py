@@ -12,7 +12,7 @@ from app.summaries import generate_summary
 
 router = APIRouter()
 
-_STAFF_ROLES = ("admin", "staff", "super_admin")
+_STAFF_ROLES = ("admin", "finance_staff")
 
 
 @router.get("/summaries", response_model=list[FinancialSummaryResponse])
@@ -31,7 +31,7 @@ async def list_summaries(
 @router.post("/summaries/regenerate", response_model=FinancialSummaryResponse)
 async def regenerate_summary(
     payload: SummaryRegenerateRequest,
-    claims: dict = Depends(require_roles("admin", "super_admin")),
+    claims: dict = Depends(require_roles("admin",)),
     session: AsyncSession = Depends(get_tenant_session),
 ) -> FinancialSummary:
     summary = await generate_summary(session, institution_id=uuid.UUID(claims["tenant_id"]), period=payload.period)

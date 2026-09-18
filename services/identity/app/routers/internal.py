@@ -13,6 +13,5 @@ async def verify_session(response: Response, claims: dict = Depends(get_current_
     """
     response.headers["X-User-Id"] = claims["sub"]
     response.headers["X-Tenant-Id"] = claims.get("tenant_id") or ""
-    response.headers["X-Campus-Id"] = claims.get("campus_id") or ""
     response.headers["X-Roles"] = claims.get("role") or ""
     return {"status": "ok"}

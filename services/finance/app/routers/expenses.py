@@ -11,7 +11,7 @@ from app.schemas import ExpenseCreateRequest, ExpenseResponse, LedgerEntryRespon
 
 router = APIRouter()
 
-_STAFF_ROLES = ("admin", "staff", "super_admin")
+_STAFF_ROLES = ("admin", "finance_staff")
 
 
 @router.post(

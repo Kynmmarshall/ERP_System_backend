@@ -7,7 +7,7 @@ async def test_staff_can_create_and_list_own_leave_request(client) -> None:
     institution_id = uuid.uuid4()
     user_id = uuid.uuid4()
     await seed_employee(institution_id, user_id=user_id)
-    token = mint_token(tenant_id=str(institution_id), role="staff", sub=str(user_id))
+    token = mint_token(tenant_id=str(institution_id), role="lecturer", sub=str(user_id))
 
     create_response = await client.post(
         "/api/v1/hr/leave/requests",
@@ -27,7 +27,7 @@ async def test_admin_can_approve_leave_and_it_creates_a_notification(client) -> 
     requester_user_id = uuid.uuid4()
     admin_user_id = uuid.uuid4()
     await seed_employee(institution_id, user_id=requester_user_id)
-    requester_token = mint_token(tenant_id=str(institution_id), role="staff", sub=str(requester_user_id))
+    requester_token = mint_token(tenant_id=str(institution_id), role="lecturer", sub=str(requester_user_id))
     admin_token = mint_token(tenant_id=str(institution_id), role="admin", sub=str(admin_user_id))
 
     create_response = await client.post(
@@ -79,7 +79,7 @@ async def test_deciding_an_already_decided_request_is_rejected(client) -> None:
     institution_id = uuid.uuid4()
     requester_user_id = uuid.uuid4()
     await seed_employee(institution_id, user_id=requester_user_id)
-    requester_token = mint_token(tenant_id=str(institution_id), role="staff", sub=str(requester_user_id))
+    requester_token = mint_token(tenant_id=str(institution_id), role="lecturer", sub=str(requester_user_id))
     admin_token = mint_token(tenant_id=str(institution_id), role="admin")
 
     create_response = await client.post(

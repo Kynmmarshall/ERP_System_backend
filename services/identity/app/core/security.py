@@ -16,6 +16,8 @@ JWT_ISSUER = "ict-erp-identity"
 JWT_AUDIENCE = "ict-erp-services"
 JWT_ALGORITHM = "RS256"
 
+_DEV_CONSOLE_MFA_CODE = "123456"
+
 
 def hash_password(plain_password: str) -> str:
     return _hasher.hash(plain_password)
@@ -40,14 +42,12 @@ def issue_access_token(
     *,
     user_id: uuid.UUID,
     institution_id: uuid.UUID | None,
-    campus_id: uuid.UUID | None,
     role: str,
 ) -> str:
     now = datetime.now(UTC)
     claims = {
         "sub": str(user_id),
         "tenant_id": str(institution_id) if institution_id else None,
-        "campus_id": str(campus_id) if campus_id else None,
         "role": role,
         "iss": JWT_ISSUER,
         "aud": JWT_AUDIENCE,
@@ -82,3 +82,28 @@ def hash_refresh_token(token: str) -> str:
 
 def refresh_token_expiry() -> datetime:
     return datetime.now(UTC) + timedelta(days=settings.refresh_token_ttl_days)
+
+
+def generate_mfa_code() -> tuple[str, str]:
+    """Returns (6_digit_code_for_email, sha256_hash_for_storage). Uses
+    secrets.randbelow, never random.*, so codes are not predictable from a
+    previously observed one.
+
+    The "console" provider already prints the code to the service log, so
+    under it the code is fixed to 123456 to save the log lookup - it discloses
+    nothing that provider did not already disclose. Two independent guards
+    keep it out of production: config.py refuses to boot in production unless
+    the provider is "brevo", and the environment check below.
+    """
+    if settings.mfa_email_provider == "console" and settings.environment != "production":
+        return _DEV_CONSOLE_MFA_CODE, hash_mfa_code(_DEV_CONSOLE_MFA_CODE)
+    code = f"{secrets.randbelow(1_000_000):06d}"
+    return code, hashlib.sha256(code.encode("utf-8")).hexdigest()
+
+
+def hash_mfa_code(code: str) -> str:
+    return hashlib.sha256(code.encode("utf-8")).hexdigest()
+
+
+def mfa_challenge_expiry() -> datetime:
+    return datetime.now(UTC) + timedelta(minutes=settings.mfa_otp_ttl_minutes)

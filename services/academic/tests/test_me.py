@@ -25,7 +25,6 @@ def _mint_token(*, expires_delta: timedelta = timedelta(minutes=10), **overrides
     claims = {
         "sub": str(uuid.uuid4()),
         "tenant_id": str(uuid.uuid4()),
-        "campus_id": None,
         "role": "admin",
         "iss": JWT_ISSUER,
         "aud": JWT_AUDIENCE,
@@ -46,14 +45,14 @@ async def client():
 
 async def test_me_returns_principal_for_valid_token(client) -> None:
     user_id = str(uuid.uuid4())
-    token = _mint_token(sub=user_id, role="staff")
+    token = _mint_token(sub=user_id, role="lecturer")
 
     response = await client.get("/api/v1/academic/me", headers={"Authorization": f"Bearer {token}"})
 
     assert response.status_code == 200
     body = response.json()
     assert body["user_id"] == user_id
-    assert body["role"] == "staff"
+    assert body["role"] == "lecturer"
 
 
 async def test_me_rejects_missing_token(client) -> None:

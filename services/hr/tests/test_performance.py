@@ -26,7 +26,7 @@ async def test_admin_can_create_performance_review(client) -> None:
 async def test_staff_cannot_create_performance_review(client) -> None:
     institution_id = uuid.uuid4()
     employee = await seed_employee(institution_id)
-    token = mint_token(tenant_id=str(institution_id), role="staff")
+    token = mint_token(tenant_id=str(institution_id), role="lecturer")
 
     response = await client.post(
         "/api/v1/hr/performance/reviews",
@@ -67,7 +67,7 @@ async def test_staff_can_list_only_their_own_reviews(client) -> None:
     own_employee = await seed_employee(institution_id, user_id=user_id, email="own@example.com")
     other_employee = await seed_employee(institution_id, email="other@example.com")
     admin_token = mint_token(tenant_id=str(institution_id), role="admin")
-    staff_token = mint_token(tenant_id=str(institution_id), role="staff", sub=str(user_id))
+    staff_token = mint_token(tenant_id=str(institution_id), role="lecturer", sub=str(user_id))
 
     for employee in (own_employee, other_employee):
         await client.post(

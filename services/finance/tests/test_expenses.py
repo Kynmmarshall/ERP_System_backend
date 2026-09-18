@@ -47,7 +47,7 @@ async def test_student_cannot_create_expense(client) -> None:
 
 
 async def test_list_expenses_returns_created_expense(client) -> None:
-    token = mint_token(tenant_id=str(uuid.uuid4()), role="staff")
+    token = mint_token(tenant_id=str(uuid.uuid4()), role="finance_staff")
     await client.post(
         "/api/v1/finance/expenses",
         json={"category": "supplies", "amount_xaf": 5_000, "description": "Stationery"},

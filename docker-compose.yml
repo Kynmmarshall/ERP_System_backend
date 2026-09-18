@@ -38,7 +38,9 @@ services:
       # Management API/UI, loopback-only - never publish 0.0.0.0 here. Lets
       # ops/monitoring/health_check.py (run via host cron) check queue
       # depths without this ever being reachable from outside the host.
-      - "127.0.0.1:15672:15672"
+      # Host port is configurable because a VPS that already runs its own
+      # RabbitMQ has 15672 taken.
+      - "127.0.0.1:${RABBITMQ_MGMT_PORT:-15672}:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
@@ -59,6 +61,16 @@ services:
       # browser. Production (behind real HTTPS) keeps the safe default (true)
       # by simply not setting this in docker-compose.prod.yml.
       REFRESH_COOKIE_SECURE: "false"
+      MFA_EMAIL_PROVIDER: ${MFA_EMAIL_PROVIDER}
+      BREVO_API_KEY: ${BREVO_API_KEY}
+      BREVO_SENDER_EMAIL: ${BREVO_SENDER_EMAIL}
+      BREVO_SENDER_NAME: ${BREVO_SENDER_NAME}
+      MFA_EMAIL_LOGO_URL: ${MFA_EMAIL_LOGO_URL}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
     volumes:
       - ./ops/secrets/dev/jwt_private_key.pem:/run/secrets/jwt_private_key.pem:ro
       - ./ops/secrets/dev/jwt_public_key.pem:/run/secrets/jwt_public_key.pem:ro
@@ -115,6 +127,11 @@ services:
       CAMERPAY_API_USER: ${CAMERPAY_API_USER}
       CAMERPAY_API_KEY: ${CAMERPAY_API_KEY}
       CAMERPAY_TARGET_ENVIRONMENT: ${CAMERPAY_TARGET_ENVIRONMENT}
+      CAMERPAY_TOKEN: ${CAMERPAY_TOKEN}
+      CAMERPAY_BASE_URL: ${CAMERPAY_BASE_URL}
+      CAMERPAY_CALLBACK_SECRET: ${CAMERPAY_CALLBACK_SECRET}
+      CAMERPAY_MERCHANT_CALLBACK_URL: ${CAMERPAY_MERCHANT_CALLBACK_URL}
+      CAMERPAY_MERCHANT_RETURN_URL: ${CAMERPAY_MERCHANT_RETURN_URL}
     volumes:
       - ./ops/secrets/dev/jwt_public_key.pem:/run/secrets/jwt_public_key.pem:ro
     depends_on:
@@ -140,6 +157,11 @@ services:
       CAMERPAY_API_USER: ${CAMERPAY_API_USER}
       CAMERPAY_API_KEY: ${CAMERPAY_API_KEY}
       CAMERPAY_TARGET_ENVIRONMENT: ${CAMERPAY_TARGET_ENVIRONMENT}
+      CAMERPAY_TOKEN: ${CAMERPAY_TOKEN}
+      CAMERPAY_BASE_URL: ${CAMERPAY_BASE_URL}
+      CAMERPAY_CALLBACK_SECRET: ${CAMERPAY_CALLBACK_SECRET}
+      CAMERPAY_MERCHANT_CALLBACK_URL: ${CAMERPAY_MERCHANT_CALLBACK_URL}
+      CAMERPAY_MERCHANT_RETURN_URL: ${CAMERPAY_MERCHANT_RETURN_URL}
     depends_on:
       postgres:
         condition: service_healthy
@@ -171,7 +193,7 @@ services:
     build: ./gateway
     <<: *service_defaults
     ports:
-      - "8081:80"
+      - "2022:80"
     depends_on:
       frontend:
         condition: service_healthy

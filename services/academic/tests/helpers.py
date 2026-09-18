@@ -27,7 +27,6 @@ def mint_token(*, expires_delta: timedelta = timedelta(minutes=10), **overrides)
     claims = {
         "sub": str(uuid.uuid4()),
         "tenant_id": str(uuid.uuid4()),
-        "campus_id": None,
         "role": "student",
         "iss": JWT_ISSUER,
         "aud": JWT_AUDIENCE,
@@ -92,14 +91,11 @@ async def seed_enrollment(
     student_id: uuid.UUID,
     program_id: uuid.UUID,
     term_id: uuid.UUID,
-    *,
-    campus_id: uuid.UUID | None = None,
 ) -> Enrollment:
     async with SessionFactory() as session:
         await set_platform_context(session)
         enrollment = Enrollment(
             institution_id=institution_id,
-            campus_id=campus_id or uuid.uuid4(),
             student_id=student_id,
             program_id=program_id,
             term_id=term_id,

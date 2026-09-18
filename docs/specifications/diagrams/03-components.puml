@@ -1,0 +1,47 @@
+@startuml
+!include theme.puml
+title ERP | Runtime components and data ownership
+top to bottom direction
+component "React SPA\nNginx static frontend" as ui
+component "Nginx gateway\nRouting + auth_request + budgets" as gateway
+package "Identity boundary" {
+  component "Identity API\nRS256 signing / refresh families" as identity
+  database identity_db as idb
+  identity --> idb
+}
+package "Academic boundary" {
+  component "Academic API\nEnrollment / teaching / reports" as academic
+  component "Outbox publisher\n2 s poll; batch 20\nFOR UPDATE SKIP LOCKED" as aw
+  database academic_db as adb
+  academic --> adb
+  aw --> adb
+}
+queue "RabbitMQ\nexchange erp.events\nEnrollmentAccepted.v1" as mq
+package "Finance & Marketing boundary" {
+  component "Finance API\nInvoices / payments / campaigns" as finance
+  component "Finance worker\nEvent consumer + 3 s payment poll\n+ hourly summary catch-up" as fw
+  database finance_db as fdb
+  finance --> fdb
+  fw --> fdb
+}
+package "HR boundary" {
+  component "HR API\nRecruitment / leave / payroll / assets" as hr
+  database hr_db as hdb
+  hr --> hdb
+}
+cloud "Provider adapter\nMTN or test double" as provider
+ui --> gateway : JSON + PDF requests
+gateway --> identity : Auth routes + internal verification
+gateway --> academic : /api/v1/academic/*
+gateway --> finance : /api/v1/finance/*
+gateway --> hr : /api/v1/hr/*
+aw --> mq : Persistent publish + confirms
+mq --> fw : Durable queue; explicit ACK/NACK
+finance --> provider : Initiation / status
+fw --> provider : Status reconciliation
+note bottom of fdb
+Four logical databases share ONE Postgres instance.
+No shared runtime library or cross-database foreign keys.
+APIs independently verify JWTs; only Identity holds private key.
+end note
+@enduml

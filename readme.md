@@ -51,10 +51,10 @@ The seed command prints one dev-only email/password per role (Super Admin,
 Admin, Staff, Student) for ICT University, plus a second synthetic
 institution used only to prove tenant isolation.
 
-Open http://localhost:8081/healthz (gateway liveness) and
-http://localhost:8081/api/v1/academic/healthz (a real request proxied through
+Open http://localhost:2022/healthz (gateway liveness) and
+http://localhost:2022/api/v1/academic/healthz (a real request proxied through
 the gateway to the academic service). Log in via
-`POST http://localhost:8081/api/v1/auth/login` with one of the seeded
+`POST http://localhost:2022/api/v1/auth/login` with one of the seeded
 accounts to get an access token; `GET /api/v1/academic/me` (and finance/hr)
 with that token proves the gateway's `auth_request` and each service's
 independent JWT verification both work end-to-end.
@@ -102,3 +102,11 @@ lockout, Postgres row-level-security tenant isolation, a gateway
 Business modules (Academic, Finance & Marketing, HR) and the Jenkins
 deployment pipeline land in later phases — see `docs/` (added progressively)
 for the full plan, SRS and architecture record.
+
+## Requirements and design documents
+
+The detailed [LaTeX SRS and Software Design Document package](docs/specifications/README.md)
+covers this backend and the sibling `ERP_System` frontend, aligned with the
+SEN4121 assignment in `docs/`. It includes compiled PDFs, 21 editable PlantUML
+diagrams, requirement/test traceability, and an explicit distinction between
+implemented behavior, incomplete features and operational targets.

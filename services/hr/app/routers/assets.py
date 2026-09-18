@@ -10,7 +10,7 @@ from app.schemas import AssetCreateRequest, AssetMovementCreateRequest, AssetMov
 
 router = APIRouter()
 
-_HR_ADMIN_ROLES = ("admin", "super_admin")
+_HR_ADMIN_ROLES = ("admin",)
 
 
 @router.post("/assets", response_model=AssetResponse, status_code=status.HTTP_201_CREATED)

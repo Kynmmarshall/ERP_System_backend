@@ -6,9 +6,12 @@
 # (ops/deploy/migrate.sh runs strictly before this, as a separate stage).
 set -euo pipefail
 
-COMPOSE_FILES="-f docker-compose.yml -f docker-compose.prod.yml"
+# Both overridable so a single-VPS deploy can build on the box instead of
+# pulling registry-pinned images (BUILD_FLAG=--build).
+COMPOSE_FILES="${COMPOSE_FILES:--f docker-compose.yml -f docker-compose.prod.yml}"
+BUILD_FLAG="${BUILD_FLAG:---no-build}"
 READY_TIMEOUT_SECONDS="${READY_TIMEOUT_SECONDS:-120}"
-GATEWAY_URL="${GATEWAY_URL:-http://127.0.0.1:8081}"
+GATEWAY_URL="${GATEWAY_URL:-http://127.0.0.1:2022}"
 
 HEALTHZ_PATHS=(
   "/healthz"
@@ -20,8 +23,14 @@ HEALTHZ_PATHS=(
 
 cd "${DEPLOY_PATH:?DEPLOY_PATH must be set}"
 
-echo "=== Bringing up stack (pinned images, no build) ==="
-docker compose $COMPOSE_FILES up -d --no-build
+echo "=== Bringing up stack (${BUILD_FLAG}) ==="
+docker compose $COMPOSE_FILES up -d $BUILD_FLAG
+
+# nginx resolves upstream hostnames once, at startup. Any service that got a
+# new container IP in the step above leaves the gateway pointing at a dead
+# address, which surfaces as 404 on every /api/v1/... route rather than 502.
+echo "=== Restarting gateway so it re-resolves upstream addresses ==="
+docker compose $COMPOSE_FILES restart gateway
 
 echo "=== Waiting for all services to report healthy (timeout ${READY_TIMEOUT_SECONDS}s) ==="
 deadline=$(( $(date +%s) + READY_TIMEOUT_SECONDS ))
