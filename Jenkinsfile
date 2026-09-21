@@ -43,8 +43,9 @@ pipeline {
         }
 
         // Shared by every stage below: a dev JWT keypair (identity signs,
-        // every service verifies) and a real, migrated Postgres for
-        // identity's RLS/auth tests. Torn down once at the very end.
+        // every service verifies) and a real, migrated Postgres. All four
+        // schemas are created here - no suite calls create_all, they expect
+        // migrations to have run. Torn down once at the very end.
         stage('Provision shared test infrastructure') {
             options {
                 lock resource: 'erp-vps-heavy'
@@ -68,6 +69,21 @@ pipeline {
                     pip install --no-cache-dir -r requirements-dev.txt
                     DATABASE_URL="postgresql+asyncpg://identity_app:identity_dev_password@127.0.0.1:55432/identity_db" \
                         python -m alembic upgrade head
+                    cd "$WORKSPACE"
+
+                    # The other three suites do not call create_all either, so
+                    # their schemas have to exist before the matrix runs.
+                    for service in academic finance hr; do
+                        echo "=== Migrating $service ==="
+                        (
+                            cd "services/$service"
+                            python3 -m venv .venv
+                            . .venv/bin/activate
+                            pip install --no-cache-dir -r requirements-dev.txt
+                            DATABASE_URL="postgresql+asyncpg://${service}_app:${service}_dev_password@127.0.0.1:55432/${service}_db" \
+                                python -m alembic upgrade head
+                        )
+                    done
                 '''
             }
         }
@@ -91,9 +107,12 @@ pipeline {
 
                                     export JWT_PUBLIC_KEY_PATH="$WORKSPACE/ops/secrets/dev/jwt_public_key.pem"
                                     export JWT_PRIVATE_KEY_PATH_FOR_TESTS="$WORKSPACE/ops/secrets/dev/jwt_private_key.pem"
+                                    # Every service needs this: without it they fall back to
+                                    # the in-container hostname `postgres`, which fails from
+                                    # the Jenkins host with "Name or service not known".
+                                    export DATABASE_URL="postgresql+asyncpg://${SERVICE}_app:${SERVICE}_dev_password@127.0.0.1:55432/${SERVICE}_db"
                                     if [ "${SERVICE}" = "identity" ]; then
                                         export JWT_PRIVATE_KEY_PATH="$WORKSPACE/ops/secrets/dev/jwt_private_key.pem"
-                                        export DATABASE_URL="postgresql+asyncpg://identity_app:identity_dev_password@127.0.0.1:55432/identity_db"
                                     fi
 
                                     ruff check .
