@@ -43,6 +43,11 @@ pipeline {
             defaultValue: true,
             description: 'Run alembic upgrade head for all four services before bringing the stack up.'
         )
+        string(
+            name: 'SMOKE_GATEWAY_URL',
+            defaultValue: 'https://ict-erp-system.duckdns.org',
+            description: 'Base URL the smoke test hits. The public HTTPS address is the honest default - it exercises host Nginx, TLS and the gateway. Point it at http://127.0.0.1:2022 only to bypass a TLS problem you already know about.'
+        )
     }
 
     environment {
@@ -131,6 +136,7 @@ pipeline {
                 sh '''
                     set -eu
                     cd "$DEPLOY_PATH"
+                    GATEWAY_URL="$SMOKE_GATEWAY_URL" \
                     SMOKE_TEST_EMAIL="$SMOKE_TEST_CREDENTIALS_USR" \
                     SMOKE_TEST_PASSWORD="$SMOKE_TEST_CREDENTIALS_PSW" \
                     ./ops/deploy/smoke.sh
